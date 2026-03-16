@@ -33,16 +33,26 @@ app.get('/', (req, res) => {
 // Test DB connection
 app.get('/test-db', async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ 
+        status: 'connecting', 
+        readyState: mongoose.connection.readyState,
+        message: 'MongoDB still connecting...'
+      });
+    }
+    
     await mongoose.connection.db.admin().ping();
     res.json({ 
       status: 'success', 
       db: 'Connected!',
-      model: mongoose.connection.readyState === 1 ? 'Ready' : 'Not Ready'
+      readyState: mongoose.connection.readyState,
+      collections: (await mongoose.connection.db.listCollections().toArray()).map(c => c.name)
     });
   } catch (err) {
-    res.status(500).json({ error: 'DB not connected', details: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
+
 
 // Auth routes
 app.use('/api/auth', require('./routes/auth'));
