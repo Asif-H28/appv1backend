@@ -3,62 +3,40 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Organization = require('../models/Organization');
 
+// CREATE ORGANIZATION
 exports.createOrganization = async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not ready' });
-    }
-
     const { orgName, adminEmail, adminPassword } = req.body;
 
     if (!orgName || !adminEmail || !adminPassword) {
-      return res.status(400).json({ error: 'orgName, adminEmail, adminPassword required' });
+      return res.status(400).json({ error: 'All fields required' });
     }
 
-    // Generate unique orgId: ORG_XXXXXX
-    const generateOrgId = () => `ORG_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-    let orgId;
-    let existingOrgId;
-    
-    // Ensure unique orgId
-    do {
-      orgId = generateOrgId();
-      existingOrgId = await Organization.findOne({ orgId });
-    } while (existingOrgId);
+    const generateId = () => `ORG_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    let orgId = generateId();
+    while (await Organization.findOne({ orgId })) {
+      orgId = generateId();
+    }
 
-    // Check name/email uniqueness
-    const existingOrg = await Organization.findOne({ 
+    const existing = await Organization.findOne({ 
       $or: [{ name: orgName }, { adminEmail }] 
     });
-    if (existingOrg) {
+    if (existing) {
       return res.status(400).json({ 
-        error: existingOrg.name === orgName 
-          ? 'Organization name already exists' 
-          : 'Admin email already registered'
+        error: existing.name === orgName ? 'Org name exists' : 'Email registered' 
       });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(12);
-    const hashedPassword = await bcrypt.hash(adminPassword, salt);
-
-    // Create organization
-    const organization = new Organization({
+    const hashedPassword = await bcrypt.hash(adminPassword, 12);
+    const organization = await Organization.create({
       orgId,
       name: orgName,
       adminEmail,
       adminPassword: hashedPassword
     });
-    await organization.save();
 
-    // JWT token
     const token = jwt.sign(
-      { 
-        orgId,
-        mongoId: organization._id.toString(),
-        adminEmail,
-        role: 'admin'
-      }, 
+      { orgId, adminEmail, role: 'admin' }, 
       process.env.JWT_SECRET, 
       { expiresIn: '30d' }
     );
@@ -69,37 +47,28 @@ exports.createOrganization = async (req, res) => {
       organization: {
         orgId,
         id: organization._id,
-        name: organization.name,
-        adminEmail: organization.adminEmail,
+        name: orgName,
+        adminEmail,
         createdAt: organization.createdAt
       }
     });
   } catch (error) {
-    console.error('Create org error:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
+// ADMIN LOGIN
 exports.adminLogin = async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not ready' });
-    }
-
     const { adminEmail, adminPassword } = req.body;
     const organization = await Organization.findOne({ adminEmail });
     
     if (!organization || !(await bcrypt.compare(adminPassword, organization.adminPassword))) {
-      return res.status(401).json({ error: 'Invalid admin credentials' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const token = jwt.sign(
-      { 
-        orgId: organization.orgId,
-        mongoId: organization._id.toString(),
-        adminEmail: organization.adminEmail,
-        role: 'admin'
-      }, 
+      { orgId: organization.orgId, adminEmail, role: 'admin' }, 
       process.env.JWT_SECRET, 
       { expiresIn: '30d' }
     );
@@ -109,13 +78,88 @@ exports.adminLogin = async (req, res) => {
       token,
       organization: {
         orgId: organization.orgId,
-        id: organization._id,
         name: organization.name,
         adminEmail: organization.adminEmail
       }
     });
   } catch (error) {
-    console.error('Admin login error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// UPDATE ORGANIZATION PROFILE
+exports.updateOrganizationProfile = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    const { phone, address, city, state, country, teachers, nonTeaching } = req.body;
+
+    const filteredData = {};
+    if (phone !== undefined) filteredData.phone = phone;
+    if (address !== undefined) filteredData.address = address;
+    if (city !== undefined) filteredData.city = city;
+    if (state !== undefined) filteredData.state = state;
+    if (country !== undefined) filteredData.country = country;
+    if (teachers !== undefined) filteredData.teachers = teachers;
+    if (nonTeaching !== undefined) filteredData.nonTeaching = nonTeaching;
+
+    const organization = await Organization.findOneAndUpdate(
+      { orgId },
+      { $set: filteredData },
+      { new: true }
+    );
+
+    if (!organization) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    res.json({
+      success: true,
+      organization: {
+        orgId: organization.orgId,
+        name: organization.name,
+        phone: organization.phone,
+        address: organization.address,
+        city: organization.city,
+        state: organization.state,
+        country: organization.country,
+        teachers: organization.teachers,
+        nonTeaching: organization.nonTeaching
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// GET ORGANIZATION PROFILE
+exports.getOrganizationProfile = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+
+    const organization = await Organization.findOne({ orgId }).select('-adminPassword');
+
+    if (!organization) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    res.json({
+      success: true,
+      organization: {
+        orgId: organization.orgId,
+        name: organization.name,
+        adminEmail: organization.adminEmail,
+        phone: organization.phone,
+        address: organization.address,
+        city: organization.city,
+        state: organization.state,
+        country: organization.country,
+        teachers: organization.teachers,
+        nonTeaching: organization.nonTeaching,
+        createdAt: organization.createdAt,
+        updatedAt: organization.updatedAt
+      }
+    });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
