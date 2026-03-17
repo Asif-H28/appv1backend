@@ -5,13 +5,26 @@ const {
   loginTeacher,
   updateTeacherProfile,
   getTeacherProfile,
-  getOrgTeachers
+  getOrgTeachers,
+  sendJoinRequest,
+  getJoinRequests,
+  approveJoinRequest,
+  rejectJoinRequest
 } = require('../controllers/teacherController');
 
+// Auth
 router.post('/register', registerTeacher);
 router.post('/login', loginTeacher);
-router.get('/org/:orgId', getOrgTeachers);                    // All teachers in org
-router.get('/:teacherId/profile', getTeacherProfile);         // Get profile
-router.put('/:teacherId/profile', updateTeacherProfile);      // Update profile
+
+// Profile
+router.get('/org/:orgId', getOrgTeachers);
+router.get('/:teacherId/profile', getTeacherProfile);
+router.put('/:teacherId/profile', updateTeacherProfile);
+
+// Join Requests
+router.post('/:teacherId/join-request', sendJoinRequest);           // Teacher sends request
+router.get('/join-requests/:orgId', getJoinRequests);               // Admin gets requests
+router.put('/join-requests/:requestId/approve', approveJoinRequest); // Admin approves
+router.put('/join-requests/:requestId/reject', rejectJoinRequest);   // Admin rejects
 
 module.exports = router;

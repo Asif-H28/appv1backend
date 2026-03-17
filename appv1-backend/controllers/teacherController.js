@@ -3,9 +3,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Teacher = require('../models/Teacher');
 const Organization = require('../models/Organization');
+const JoinRequest = require('../models/JoinRequest');
 
-// GENERATE UNIQUE TEACHER ID
 const generateTeacherId = () => `TCH_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+const generateRequestId = () => `REQ_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
 // REGISTER TEACHER
 exports.registerTeacher = async (req, res) => {
@@ -16,37 +17,32 @@ exports.registerTeacher = async (req, res) => {
       return res.status(400).json({ error: 'name, email, password, orgId required' });
     }
 
-    // Verify organization exists
     const organization = await Organization.findOne({ orgId });
     if (!organization) {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
-    // Check duplicate email
     const existingTeacher = await Teacher.findOne({ email });
     if (existingTeacher) {
       return res.status(400).json({ error: 'Email already registered' });
     }
 
-    // Generate unique teacherId
     let teacherId = generateTeacherId();
     while (await Teacher.findOne({ teacherId })) {
       teacherId = generateTeacherId();
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create teacher
     const teacher = await Teacher.create({
       teacherId,
       orgId,
       name,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      verified: false     // Always false on register
     });
 
-    // JWT token
     const token = jwt.sign(
       { teacherId, orgId, email, role: 'teacher' },
       process.env.JWT_SECRET,
@@ -61,11 +57,11 @@ exports.registerTeacher = async (req, res) => {
         orgId,
         name,
         email,
+        verified: false,
         createdAt: teacher.createdAt
       }
     });
   } catch (error) {
-    console.error('Teacher register error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -97,11 +93,11 @@ exports.loginTeacher = async (req, res) => {
         teacherId: teacher.teacherId,
         orgId: teacher.orgId,
         name: teacher.name,
-        email: teacher.email
+        email: teacher.email,
+        verified: teacher.verified   // Show verified status on login
       }
     });
   } catch (error) {
-    console.error('Teacher login error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -116,10 +112,6 @@ exports.updateTeacherProfile = async (req, res) => {
     if (dob !== undefined) filteredData.dob = dob;
     if (address !== undefined) filteredData.address = address;
     if (phoneNumber !== undefined) filteredData.phoneNumber = phoneNumber;
-
-    if (Object.keys(filteredData).length === 0) {
-      return res.status(400).json({ error: 'No valid fields to update' });
-    }
 
     const teacher = await Teacher.findOneAndUpdate(
       { teacherId },
@@ -140,11 +132,11 @@ exports.updateTeacherProfile = async (req, res) => {
         email: teacher.email,
         dob: teacher.dob,
         address: teacher.address,
-        phoneNumber: teacher.phoneNumber
+        phoneNumber: teacher.phoneNumber,
+        verified: teacher.verified
       }
     });
   } catch (error) {
-    console.error('Update teacher error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -153,7 +145,6 @@ exports.updateTeacherProfile = async (req, res) => {
 exports.getTeacherProfile = async (req, res) => {
   try {
     const { teacherId } = req.params;
-
     const teacher = await Teacher.findOne({ teacherId }).select('-password');
 
     if (!teacher) {
@@ -170,12 +161,11 @@ exports.getTeacherProfile = async (req, res) => {
         dob: teacher.dob,
         address: teacher.address,
         phoneNumber: teacher.phoneNumber,
-        createdAt: teacher.createdAt,
-        updatedAt: teacher.updatedAt
+        verified: teacher.verified,
+        createdAt: teacher.createdAt
       }
     });
   } catch (error) {
-    console.error('Get teacher error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -184,7 +174,6 @@ exports.getTeacherProfile = async (req, res) => {
 exports.getOrgTeachers = async (req, res) => {
   try {
     const { orgId } = req.params;
-
     const teachers = await Teacher.find({ orgId }).select('-password');
 
     res.json({
@@ -196,8 +185,160 @@ exports.getOrgTeachers = async (req, res) => {
         email: t.email,
         dob: t.dob,
         address: t.address,
-        phoneNumber: t.phoneNumber
+        phoneNumber: t.phoneNumber,
+        verified: t.verified
       }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// TEACHER SENDS JOIN REQUEST
+exports.sendJoinRequest = async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    const teacher = await Teacher.findOne({ teacherId });
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    if (teacher.verified) {
+      return res.status(400).json({ error: 'Teacher already verified' });
+    }
+
+    // Check if pending request exists
+    const existingRequest = await JoinRequest.findOne({ 
+      teacherId, 
+      status: 'pending' 
+    });
+    if (existingRequest) {
+      return res.status(400).json({ error: 'Join request already pending' });
+    }
+
+    // Generate unique requestId
+    let requestId = generateRequestId();
+    while (await JoinRequest.findOne({ requestId })) {
+      requestId = generateRequestId();
+    }
+
+    const request = await JoinRequest.create({
+      requestId,
+      teacherId,
+      orgId: teacher.orgId,
+      teacherName: teacher.name,
+      teacherEmail: teacher.email,
+      status: 'pending'
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Join request sent successfully',
+      request: {
+        requestId: request.requestId,
+        teacherId,
+        orgId: teacher.orgId,
+        status: 'pending'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ADMIN GETS ALL PENDING JOIN REQUESTS FOR ORG
+exports.getJoinRequests = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+
+    const requests = await JoinRequest.find({ 
+      orgId, 
+      status: 'pending' 
+    });
+
+    res.json({
+      success: true,
+      count: requests.length,
+      requests: requests.map(r => ({
+        requestId: r.requestId,
+        teacherId: r.teacherId,
+        teacherName: r.teacherName,
+        teacherEmail: r.teacherEmail,
+        status: r.status,
+        createdAt: r.createdAt
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ADMIN APPROVES JOIN REQUEST → verified: true
+exports.approveJoinRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+
+    const request = await JoinRequest.findOne({ requestId });
+    if (!request) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({ error: `Request already ${request.status}` });
+    }
+
+    // Update teacher verified → true
+    await Teacher.findOneAndUpdate(
+      { teacherId: request.teacherId },
+      { $set: { verified: true } }
+    );
+
+    // Update request status → approved
+    await JoinRequest.findOneAndUpdate(
+      { requestId },
+      { $set: { status: 'approved' } }
+    );
+
+    res.json({
+      success: true,
+      message: `Teacher ${request.teacherName} approved successfully`,
+      teacherId: request.teacherId,
+      status: 'approved'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ADMIN REJECTS JOIN REQUEST → DELETE teacher
+exports.rejectJoinRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+
+    const request = await JoinRequest.findOne({ requestId });
+    if (!request) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({ error: `Request already ${request.status}` });
+    }
+
+    // Delete teacher from database
+    await Teacher.findOneAndDelete({ teacherId: request.teacherId });
+
+    // Update request status → rejected
+    await JoinRequest.findOneAndUpdate(
+      { requestId },
+      { $set: { status: 'rejected' } }
+    );
+
+    res.json({
+      success: true,
+      message: `Teacher ${request.teacherName} rejected and removed`,
+      teacherId: request.teacherId,
+      status: 'rejected'
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
