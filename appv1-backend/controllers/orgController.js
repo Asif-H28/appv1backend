@@ -163,3 +163,53 @@ exports.getOrganizationProfile = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// SEARCH ORGANIZATIONS
+exports.searchOrganization = async (req, res) => {
+  try {
+    const { query } = req.query; // ?query=searchterm
+
+    if (!query || query.trim() === '') {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+
+    const searchRegex = new RegExp(query.trim(), 'i'); // Case insensitive
+
+    const organizations = await Organization.find({
+      $or: [
+        { name: searchRegex },
+        { city: searchRegex },
+        { state: searchRegex },
+        { phone: searchRegex }
+      ]
+    }).select('-adminPassword'); // Never return password
+
+    if (organizations.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'No organizations found',
+        results: []
+      });
+    }
+
+    res.json({
+      success: true,
+      count: organizations.length,
+      results: organizations.map(org => ({
+        orgId: org.orgId,
+        name: org.name,
+        adminEmail: org.adminEmail,
+        phone: org.phone,
+        address: org.address,
+        city: org.city,
+        state: org.state,
+        country: org.country,
+        teachers: org.teachers,
+        nonTeaching: org.nonTeaching
+      }))
+    });
+  } catch (error) {
+    console.error('Search org error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
