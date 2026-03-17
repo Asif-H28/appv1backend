@@ -57,6 +57,8 @@ app.get('/test-db', async (req, res) => {
 // Auth routes
 app.use('/api/auth', require('./routes/auth'));
 
+app.use('/api/org', require('./routes/org'));
+
 // 404 handler (FIXED syntax)
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
