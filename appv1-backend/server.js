@@ -59,6 +59,11 @@ app.use('/api/auth', require('./routes/auth'));
 
 app.use('/api/org', require('./routes/org'));
 
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/org', require('./routes/org'));
+app.use('/api/teacher', require('./routes/teacher'));   // ← ADD THIS
+
+
 // 404 handler (FIXED syntax)
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
