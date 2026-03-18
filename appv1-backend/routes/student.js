@@ -2,8 +2,6 @@ const express = require('express');
 const router = express.Router();
 const {
   register,
-  verifyOtp,
-  resendOtp,
   login,
   listOrgs,
   listClassesByOrg,
@@ -12,8 +10,6 @@ const {
 } = require('../controllers/studentController');
 
 router.post('/register', register);
-router.post('/verify-otp', verifyOtp);
-router.post('/resend-otp', resendOtp);
 router.post('/login', login);
 router.get('/orgs', listOrgs);
 router.get('/orgs/:orgId/classes', listClassesByOrg);

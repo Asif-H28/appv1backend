@@ -8,14 +8,11 @@ const studentSchema = new mongoose.Schema({
   password: { type: String, required: true },
   orgId: { type: String, default: null },
   classId: { type: String, default: null },
-  joinStatus: { 
-    type: String, 
-    enum: ['none', 'pending', 'approved', 'rejected'], 
-    default: 'none' 
-  },
-  verified: { type: Boolean, default: false },
-  otp: { type: String, default: null },
-  otpExpiresAt: { type: Date, default: null }
+  joinStatus: {
+    type: String,
+    enum: ['none', 'pending', 'approved', 'rejected'],
+    default: 'none'
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Student', studentSchema);

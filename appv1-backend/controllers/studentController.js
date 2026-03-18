@@ -3,15 +3,13 @@ const jwt = require('jsonwebtoken');
 const Student = require('../models/Student');
 const Classroom = require('../models/Classroom');
 const ClassJoinRequest = require('../models/ClassJoinRequest');
-const Org = require('../models/Organization');
-const { sendOtpEmail } = require('../config/mailer');
+const Org = require('../models/Org');
 
 const generateStudentId = () => `STU_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 const generateRequestId = () => `REQ_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 // ─────────────────────────────────────────────
-// STEP 1: REGISTER STUDENT
+// REGISTER STUDENT
 // ─────────────────────────────────────────────
 exports.register = async (req, res) => {
   try {
@@ -25,8 +23,6 @@ exports.register = async (req, res) => {
     if (existingStudent) return res.status(400).json({ error: 'Email already registered' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const otp = generateOTP();
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
     let studentId = generateStudentId();
     while (await Student.findOne({ studentId })) {
@@ -38,18 +34,19 @@ exports.register = async (req, res) => {
       name,
       email,
       phone,
-      password: hashedPassword,
-      otp,
-      otpExpiresAt
+      password: hashedPassword
     });
-
-    // Send OTP via email
-    await sendOtpEmail(email, name, otp);
 
     res.status(201).json({
       success: true,
-      message: 'Student registered. OTP sent to email.',
-      studentId: student.studentId
+      message: 'Student registered successfully.',
+      student: {
+        studentId: student.studentId,
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
+        joinStatus: student.joinStatus
+      }
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -57,35 +54,7 @@ exports.register = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
-// STEP 2: VERIFY OTP
-// ─────────────────────────────────────────────
-exports.verifyOtp = async (req, res) => {
-  try {
-    const { studentId, otp } = req.body;
-
-    if (!studentId || !otp) {
-      return res.status(400).json({ error: 'studentId and otp required' });
-    }
-
-    const student = await Student.findOne({ studentId });
-    if (!student) return res.status(404).json({ error: 'Student not found' });
-    if (student.verified) return res.status(400).json({ error: 'Already verified' });
-    if (student.otp !== otp) return res.status(400).json({ error: 'Invalid OTP' });
-    if (new Date() > student.otpExpiresAt) return res.status(400).json({ error: 'OTP expired' });
-
-    student.verified = true;
-    student.otp = null;
-    student.otpExpiresAt = null;
-    await student.save();
-
-    res.json({ success: true, message: 'Student verified successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// ─────────────────────────────────────────────
-// STEP 3: LOGIN
+// LOGIN
 // ─────────────────────────────────────────────
 exports.login = async (req, res) => {
   try {
@@ -97,7 +66,6 @@ exports.login = async (req, res) => {
 
     const student = await Student.findOne({ email });
     if (!student) return res.status(404).json({ error: 'Student not found' });
-    if (!student.verified) return res.status(403).json({ error: 'Please verify your account first' });
 
     const isMatch = await bcrypt.compare(password, student.password);
     if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
@@ -127,7 +95,7 @@ exports.login = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
-// STEP 4: GET LIST OF ORGS (student picks org)
+// LIST ALL ORGS
 // ─────────────────────────────────────────────
 exports.listOrgs = async (req, res) => {
   try {
@@ -139,7 +107,7 @@ exports.listOrgs = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
-// STEP 5: GET CLASSES BY ORG (student picks class)
+// LIST CLASSES BY ORG
 // ─────────────────────────────────────────────
 exports.listClassesByOrg = async (req, res) => {
   try {
@@ -165,7 +133,7 @@ exports.listClassesByOrg = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
-// STEP 6: SEND JOIN REQUEST TO CLASS
+// SEND JOIN REQUEST
 // ─────────────────────────────────────────────
 exports.sendJoinRequest = async (req, res) => {
   try {
@@ -177,7 +145,6 @@ exports.sendJoinRequest = async (req, res) => {
 
     const student = await Student.findOne({ studentId });
     if (!student) return res.status(404).json({ error: 'Student not found' });
-    if (!student.verified) return res.status(403).json({ error: 'Please verify your account first' });
 
     if (student.joinStatus === 'pending') {
       return res.status(400).json({ error: 'You already have a pending join request' });
@@ -189,7 +156,6 @@ exports.sendJoinRequest = async (req, res) => {
     const classroom = await Classroom.findOne({ classId });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
-    // Check duplicate request
     const existingRequest = await ClassJoinRequest.findOne({
       studentId,
       classId,
@@ -216,7 +182,6 @@ exports.sendJoinRequest = async (req, res) => {
       status: 'pending'
     });
 
-    // Update student status
     student.joinStatus = 'pending';
     student.classId = classId;
     student.orgId = classroom.orgId;
@@ -233,40 +198,15 @@ exports.sendJoinRequest = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
-// STEP 7: GET STUDENT PROFILE
+// GET STUDENT PROFILE
 // ─────────────────────────────────────────────
 exports.getStudentProfile = async (req, res) => {
   try {
     const { studentId } = req.params;
-    const student = await Student.findOne({ studentId }, '-password -otp -otpExpiresAt');
+    const student = await Student.findOne({ studentId }, '-password');
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     res.json({ success: true, student });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// ─────────────────────────────────────────────
-// RESEND OTP
-// ─────────────────────────────────────────────
-exports.resendOtp = async (req, res) => {
-  try {
-    const { studentId } = req.body;
-
-    const student = await Student.findOne({ studentId });
-    if (!student) return res.status(404).json({ error: 'Student not found' });
-    if (student.verified) return res.status(400).json({ error: 'Already verified' });
-
-    const otp = generateOTP();
-    student.otp = otp;
-    student.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    await student.save();
-
-    // Send OTP via email
-    await sendOtpEmail(student.email, student.name, otp);
-
-    res.json({ success: true, message: 'OTP resent successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
