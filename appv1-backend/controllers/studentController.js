@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const Student = require('../models/Student');
 const Classroom = require('../models/Classroom');
 const ClassJoinRequest = require('../models/ClassJoinRequest');
-const Org = require('../models/Org');
+const Org = require('../models/Organization');
 const { sendOtpEmail } = require('../config/mailer');
 
 const generateStudentId = () => `STU_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
