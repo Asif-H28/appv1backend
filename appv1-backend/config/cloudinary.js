@@ -58,4 +58,25 @@ const uploadAny = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
 
-module.exports = { cloudinary, uploadImage, uploadPdf, uploadAny };
+// ADD this at the bottom of config/cloudinary.js
+
+const noticeStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => {
+    const isPdf = file.mimetype === 'application/pdf';
+    return {
+      folder: isPdf ? 'appv1/notices/pdfs' : 'appv1/notices/images',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
+      resource_type: isPdf ? 'raw' : 'image'
+    };
+  }
+});
+
+const uploadNoticeFiles = multer({
+  storage: noticeStorage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB per file
+});
+
+module.exports = { cloudinary, uploadImage, uploadPdf, uploadAny, uploadNoticeFiles };
+
+

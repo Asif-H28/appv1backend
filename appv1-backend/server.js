@@ -75,6 +75,9 @@ app.use('/api/teacher', require('./routes/teacher'));
 app.use('/api/classroom', require('./routes/classroom'));
 app.use('/api/upload', require('./routes/upload'));   // ← ADD THIS
 
+app.use('/api/notice', require('./routes/notice'));  // ← ADD THIS
+
+
 
 
 
