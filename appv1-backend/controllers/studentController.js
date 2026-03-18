@@ -4,6 +4,7 @@ const Student = require('../models/Student');
 const Classroom = require('../models/Classroom');
 const ClassJoinRequest = require('../models/ClassJoinRequest');
 const Org = require('../models/Org');
+const { sendOtpEmail } = require('../config/mailer');
 
 const generateStudentId = () => `STU_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 const generateRequestId = () => `REQ_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -42,8 +43,8 @@ exports.register = async (req, res) => {
       otpExpiresAt
     });
 
-    // TODO: Send OTP via email/SMS
-    console.log(`OTP for ${email}: ${otp}`);
+    // Send OTP via email
+    await sendOtpEmail(email, name, otp);
 
     res.status(201).json({
       success: true,
@@ -262,7 +263,8 @@ exports.resendOtp = async (req, res) => {
     student.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await student.save();
 
-    console.log(`Resend OTP for ${student.email}: ${otp}`);
+    // Send OTP via email
+    await sendOtpEmail(student.email, student.name, otp);
 
     res.json({ success: true, message: 'OTP resent successfully' });
   } catch (error) {
