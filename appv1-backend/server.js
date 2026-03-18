@@ -69,6 +69,13 @@ app.use('/api/org', require('./routes/org'));
 app.use('/api/teacher', require('./routes/teacher'));
 app.use('/api/classroom', require('./routes/classroom'));  // ← ADD THIS
 
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/org', require('./routes/org'));
+app.use('/api/teacher', require('./routes/teacher'));
+app.use('/api/classroom', require('./routes/classroom'));
+app.use('/api/upload', require('./routes/upload'));   // ← ADD THIS
+
+
 
 
 // 404 handler (FIXED syntax)
