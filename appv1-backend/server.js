@@ -79,6 +79,10 @@ app.use('/api/notice', require('./routes/notice'));  // ← ADD THIS
 
 app.use('/api/notes', require('./routes/notes'));  // ← ADD THIS
 
+app.use('/api/student', require('./routes/student'));
+app.use('/api/join', require('./routes/classJoin'));
+
+
 
 
 
