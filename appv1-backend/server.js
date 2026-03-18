@@ -77,6 +77,9 @@ app.use('/api/upload', require('./routes/upload'));   // ← ADD THIS
 
 app.use('/api/notice', require('./routes/notice'));  // ← ADD THIS
 
+app.use('/api/notes', require('./routes/notes'));  // ← ADD THIS
+
+
 
 
 
