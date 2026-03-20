@@ -40,6 +40,7 @@ exports.getRequestsByClass = async (req, res) => {
 };
 
 // APPROVE REQUEST
+// APPROVE REQUEST
 exports.approveRequest = async (req, res) => {
   try {
     const { requestId } = req.params;
@@ -50,22 +51,21 @@ exports.approveRequest = async (req, res) => {
       return res.status(400).json({ error: `Request already ${request.status}` });
     }
 
-    // Update request
     request.status = 'approved';
     request.reviewedAt = new Date();
     await request.save();
 
-    // Update student
+    // ✅ Move tempOrgId → orgId on approval
     await Student.findOneAndUpdate(
       { studentId: request.studentId },
       {
         joinStatus: 'approved',
         classId: request.classId,
-        orgId: request.orgId
+        orgId: request.orgId,       // ← now officially set
+        tempOrgId: null             // ← clear temp
       }
     );
 
-    // Add student to classroom
     const classroom = await Classroom.findOne({ classId: request.classId });
     if (classroom && !classroom.studentIds.includes(request.studentId)) {
       classroom.studentIds.push(request.studentId);
@@ -93,19 +93,18 @@ exports.rejectRequest = async (req, res) => {
       return res.status(400).json({ error: `Request already ${request.status}` });
     }
 
-    // Update request
     request.status = 'rejected';
     request.reviewedAt = new Date();
     request.rejectionReason = rejectionReason || 'No reason provided';
     await request.save();
 
-    // Reset student status
+    // ❌ Rejected → reset classId/joinStatus, keep tempOrgId so student can try another class
     await Student.findOneAndUpdate(
       { studentId: request.studentId },
       {
         joinStatus: 'rejected',
         classId: null,
-        orgId: null
+        orgId: null          // ← stays null, tempOrgId kept intact
       }
     );
 
@@ -118,6 +117,9 @@ exports.rejectRequest = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// REJECT REQUEST
+
 
 // GET REQUEST STATUS (student checks their request)
 exports.getRequestStatus = async (req, res) => {

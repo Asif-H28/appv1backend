@@ -6,7 +6,8 @@ const studentSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true },
   phone: { type: String, required: true },
   password: { type: String, required: true },
-  orgId: { type: String, default: null },
+  tempOrgId: { type: String, default: null },   // ← selected during register
+  orgId: { type: String, default: null },        // ← set only after approval
   classId: { type: String, default: null },
   joinStatus: {
     type: String,

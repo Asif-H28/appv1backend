@@ -9,15 +9,33 @@ const generateStudentId = () => `STU_${Math.random().toString(36).substr(2, 6).t
 const generateRequestId = () => `REQ_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
 // ─────────────────────────────────────────────
+// LIST ALL ORGS (called before register so 
+// student can pick org during signup)
+// ─────────────────────────────────────────────
+exports.listOrgs = async (req, res) => {
+  try {
+    const orgs = await Org.find({}, 'orgId orgName').sort({ orgName: 1 });
+    res.json({ success: true, count: orgs.length, orgs });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────
 // REGISTER STUDENT
+// (orgId selected during signup → saved as tempOrgId)
 // ─────────────────────────────────────────────
 exports.register = async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body;
+    const { name, email, phone, password, orgId } = req.body;
 
-    if (!name || !email || !phone || !password) {
-      return res.status(400).json({ error: 'name, email, phone, password required' });
+    if (!name || !email || !phone || !password || !orgId) {
+      return res.status(400).json({ error: 'name, email, phone, password, orgId required' });
     }
+
+    // Validate org exists
+    const org = await Org.findOne({ orgId });
+    if (!org) return res.status(404).json({ error: 'Organization not found' });
 
     const existingStudent = await Student.findOne({ email });
     if (existingStudent) return res.status(400).json({ error: 'Email already registered' });
@@ -34,7 +52,11 @@ exports.register = async (req, res) => {
       name,
       email,
       phone,
-      password: hashedPassword
+      password: hashedPassword,
+      tempOrgId: orgId,    // ← stored as temp until approved
+      orgId: null,         // ← stays null until approved
+      classId: null,
+      joinStatus: 'none'
     });
 
     res.status(201).json({
@@ -45,6 +67,9 @@ exports.register = async (req, res) => {
         name: student.name,
         email: student.email,
         phone: student.phone,
+        tempOrgId: student.tempOrgId,
+        orgId: student.orgId,
+        classId: student.classId,
         joinStatus: student.joinStatus
       }
     });
@@ -76,6 +101,12 @@ exports.login = async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Fetch tempOrg details to show on login
+    let tempOrg = null;
+    if (student.tempOrgId) {
+      tempOrg = await Org.findOne({ orgId: student.tempOrgId }, 'orgId orgName');
+    }
+
     res.json({
       success: true,
       token,
@@ -84,6 +115,8 @@ exports.login = async (req, res) => {
         name: student.name,
         email: student.email,
         phone: student.phone,
+        tempOrgId: student.tempOrgId,
+        tempOrg,              // ← full org details shown on login
         orgId: student.orgId,
         classId: student.classId,
         joinStatus: student.joinStatus
@@ -95,19 +128,8 @@ exports.login = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
-// LIST ALL ORGS
-// ─────────────────────────────────────────────
-exports.listOrgs = async (req, res) => {
-  try {
-    const orgs = await Org.find({}, 'orgId orgName').sort({ orgName: 1 });
-    res.json({ success: true, count: orgs.length, orgs });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// ─────────────────────────────────────────────
-// LIST CLASSES BY ORG
+// LIST CLASSES BY TEMP ORG
+// (student clicks on their org → sees classes)
 // ─────────────────────────────────────────────
 exports.listClassesByOrg = async (req, res) => {
   try {
@@ -156,6 +178,11 @@ exports.sendJoinRequest = async (req, res) => {
     const classroom = await Classroom.findOne({ classId });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
+    // Ensure class belongs to student's tempOrg
+    if (classroom.orgId !== student.tempOrgId) {
+      return res.status(403).json({ error: 'This class does not belong to your selected organization' });
+    }
+
     const existingRequest = await ClassJoinRequest.findOne({
       studentId,
       classId,
@@ -182,9 +209,9 @@ exports.sendJoinRequest = async (req, res) => {
       status: 'pending'
     });
 
+    // Only update joinStatus + classId, NOT orgId yet
     student.joinStatus = 'pending';
     student.classId = classId;
-    student.orgId = classroom.orgId;
     await student.save();
 
     res.status(201).json({
