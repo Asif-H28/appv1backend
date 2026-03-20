@@ -101,10 +101,16 @@ exports.login = async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    // Fetch tempOrg details to show on login
+    // Fetch full tempOrg document
     let tempOrg = null;
     if (student.tempOrgId) {
-      tempOrg = await Org.findOne({ orgId: student.tempOrgId }, 'orgId orgName');
+      const orgDoc = await Org.findOne({ orgId: student.tempOrgId });
+      if (orgDoc) {
+        tempOrg = {
+          orgId: orgDoc.orgId,
+          orgName: orgDoc.name          // ← change this to match your model field
+        };
+      }
     }
 
     res.json({
@@ -116,7 +122,7 @@ exports.login = async (req, res) => {
         email: student.email,
         phone: student.phone,
         tempOrgId: student.tempOrgId,
-        tempOrg,              // ← full org details shown on login
+        tempOrg,
         orgId: student.orgId,
         classId: student.classId,
         joinStatus: student.joinStatus
@@ -126,6 +132,7 @@ exports.login = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // ─────────────────────────────────────────────
 // LIST CLASSES BY TEMP ORG
