@@ -272,3 +272,127 @@ exports.deleteClassroom = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// UPDATE SUBJECT NAME
+exports.updateSubject = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { oldName, newName } = req.body;
+
+    if (!oldName || !newName) {
+      return res.status(400).json({ error: 'oldName and newName required' });
+    }
+
+    const classroom = await Classroom.findOne({ classId });
+    if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
+
+    const subject = classroom.subjects.find(s => s.name === oldName);
+    if (!subject) return res.status(404).json({ error: 'Subject not found' });
+
+    const duplicate = classroom.subjects.find(s => s.name === newName);
+    if (duplicate) return res.status(400).json({ error: 'Subject with this name already exists' });
+
+    subject.name = newName;
+    await classroom.save();
+
+    res.json({
+      success: true,
+      message: `Subject renamed from "${oldName}" to "${newName}"`,
+      subjects: classroom.subjects
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// REMOVE SUBJECT FROM CLASSROOM
+exports.removeSubject = async (req, res) => {
+  try {
+    const { classId, subjectName } = req.params;
+
+    const classroom = await Classroom.findOne({ classId });
+    if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
+
+    const exists = classroom.subjects.find(s => s.name === subjectName);
+    if (!exists) return res.status(404).json({ error: 'Subject not found' });
+
+    classroom.subjects = classroom.subjects.filter(s => s.name !== subjectName);
+    await classroom.save();
+
+    res.json({
+      success: true,
+      message: `Subject "${subjectName}" removed`,
+      subjects: classroom.subjects
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// UPDATE LESSON NAME
+exports.updateLesson = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { subjectName, oldLessonName, newLessonName } = req.body;
+
+    if (!subjectName || !oldLessonName || !newLessonName) {
+      return res.status(400).json({ error: 'subjectName, oldLessonName, newLessonName required' });
+    }
+
+    const classroom = await Classroom.findOne({ classId });
+    if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
+
+    const subject = classroom.subjects.find(s => s.name === subjectName);
+    if (!subject) return res.status(404).json({ error: 'Subject not found' });
+
+    const lesson = subject.lessons.find(l => l.name === oldLessonName);
+    if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+
+    const duplicate = subject.lessons.find(l => l.name === newLessonName);
+    if (duplicate) return res.status(400).json({ error: 'Lesson with this name already exists' });
+
+    lesson.name = newLessonName;
+    await classroom.save();
+
+    res.json({
+      success: true,
+      message: `Lesson renamed from "${oldLessonName}" to "${newLessonName}"`,
+      subject: {
+        name: subject.name,
+        lessons: subject.lessons
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// REMOVE LESSON FROM SUBJECT
+exports.removeLesson = async (req, res) => {
+  try {
+    const { classId, subjectName, lessonName } = req.params;
+
+    const classroom = await Classroom.findOne({ classId });
+    if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
+
+    const subject = classroom.subjects.find(s => s.name === subjectName);
+    if (!subject) return res.status(404).json({ error: 'Subject not found' });
+
+    const lesson = subject.lessons.find(l => l.name === lessonName);
+    if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+
+    subject.lessons = subject.lessons.filter(l => l.name !== lessonName);
+    await classroom.save();
+
+    res.json({
+      success: true,
+      message: `Lesson "${lessonName}" removed from "${subjectName}"`,
+      subject: {
+        name: subject.name,
+        lessons: subject.lessons
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
