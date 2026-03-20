@@ -138,3 +138,51 @@ exports.getRequestStatus = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// REMOVE STUDENT FROM CLASSROOM
+exports.removeStudent = async (req, res) => {
+  try {
+    const { classId, studentId } = req.params;
+
+    // Check classroom exists
+    const classroom = await Classroom.findOne({ classId });
+    if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
+
+    // Check student exists in classroom
+    if (!classroom.studentIds.includes(studentId)) {
+      return res.status(400).json({ error: 'Student not found in this classroom' });
+    }
+
+    // 1. Remove student from classroom studentIds[]
+    classroom.studentIds = classroom.studentIds.filter(id => id !== studentId);
+    await classroom.save();
+
+    // 2. Update join request status → rejected
+    await ClassJoinRequest.findOneAndUpdate(
+      { studentId, classId, status: 'approved' },
+      {
+        status: 'rejected',
+        rejectionReason: 'Removed by teacher',
+        reviewedAt: new Date()
+      }
+    );
+
+    // 3. Reset student joinStatus
+    await Student.findOneAndUpdate(
+      { studentId },
+      {
+        joinStatus: 'none',
+        classId: null,
+        orgId: null
+      }
+    );
+
+    res.json({
+      success: true,
+      message: `Student ${studentId} removed from classroom ${classId}`
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
