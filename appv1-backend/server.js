@@ -83,6 +83,9 @@ app.use('/api/test', require('./routes/test'));  // ← ADD THIS
 
 app.use('/api/result', require('./routes/result'));  // ← ADD THIS
 
+app.use('/api/attendance', require('./routes/attendance'));  // ← ADD THIS
+
+
 
 app.use('/api/student', require('./routes/student'));
 app.use('/api/join', require('./routes/classJoin'));
