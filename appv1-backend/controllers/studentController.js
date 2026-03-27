@@ -245,3 +245,43 @@ exports.getStudentProfile = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// ─────────────────────────────────────────────
+// UPDATE STUDENT PROFILE
+// ─────────────────────────────────────────────
+exports.updateStudentProfile = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { name, phone, gender, address } = req.body;
+
+    const student = await Student.findOne({ studentId });
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    // Only update fields that are provided
+    if (name) student.name = name;
+    if (phone) student.phone = phone;
+    if (gender) student.gender = gender;
+    if (address) student.address = address;
+
+    await student.save();
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      student: {
+        studentId: student.studentId,
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
+        gender: student.gender,
+        address: student.address,
+        tempOrgId: student.tempOrgId,
+        orgId: student.orgId,
+        classId: student.classId,
+        joinStatus: student.joinStatus
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

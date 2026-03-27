@@ -6,7 +6,8 @@ const {
   listOrgs,
   listClassesByOrg,
   sendJoinRequest,
-  getStudentProfile
+  getStudentProfile,
+    updateStudentProfile  
 } = require('../controllers/studentController');
 
 router.post('/register', register);
@@ -15,5 +16,6 @@ router.get('/orgs', listOrgs);
 router.get('/orgs/:orgId/classes', listClassesByOrg);
 router.post('/join-request', sendJoinRequest);
 router.get('/profile/:studentId', getStudentProfile);
+router.put('/profile/:studentId', updateStudentProfile);
 
 module.exports = router;
