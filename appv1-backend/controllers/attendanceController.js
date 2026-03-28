@@ -1,21 +1,17 @@
 const Attendance = require('../models/Attendance');
 const Classroom = require('../models/Classroom');
 const Student = require('../models/Student');
+const { notifyClass } = require('../utils/sendNotification');  // ← ADDED
 
 const generateAttendanceId = () => `ATT_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
-// ─────────────────────────────────────────────
-// HELPER: Calculate totals
-// ─────────────────────────────────────────────
 const calculateTotals = (students) => {
   const totalPresent = students.filter(s => s.attendance === 'Present').length;
   const totalAbsent = students.filter(s => s.attendance === 'Absent').length;
   return { totalPresent, totalAbsent };
 };
 
-// ─────────────────────────────────────────────
 // CREATE ATTENDANCE
-// ─────────────────────────────────────────────
 exports.createAttendance = async (req, res) => {
   try {
     const { attendanceDate, classId, orgId, teacherId, teacherName, students } = req.body;
@@ -28,7 +24,6 @@ exports.createAttendance = async (req, res) => {
       return res.status(400).json({ error: 'students list required' });
     }
 
-    // Validate each student attendance value
     for (const s of students) {
       if (!s.studentId || !s.name || !s.attendance) {
         return res.status(400).json({ error: 'Each student needs studentId, name, attendance' });
@@ -38,11 +33,9 @@ exports.createAttendance = async (req, res) => {
       }
     }
 
-    // Check classroom exists
     const classroom = await Classroom.findOne({ classId });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
-    // Check duplicate attendance for same class and same date
     const dateStart = new Date(attendanceDate);
     dateStart.setHours(0, 0, 0, 0);
     const dateEnd = new Date(attendanceDate);
@@ -53,7 +46,7 @@ exports.createAttendance = async (req, res) => {
       attendanceDate: { $gte: dateStart, $lte: dateEnd }
     });
     if (existing) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: `Attendance already marked for this class on ${new Date(attendanceDate).toDateString()}`,
         attendanceId: existing.attendanceId
       });
@@ -69,15 +62,26 @@ exports.createAttendance = async (req, res) => {
     const attendance = await Attendance.create({
       attendanceId,
       attendanceDate: new Date(attendanceDate),
-      classId,
-      orgId,
-      teacherId,
-      teacherName,
+      classId, orgId, teacherId, teacherName,
       className: classroom.className,
-      students,
-      totalPresent,
-      totalAbsent
+      students, totalPresent, totalAbsent
     });
+
+    // ✅ MOVED INSIDE FUNCTION
+    try {
+      await notifyClass({
+        classId,
+        orgId,
+        title: `✅ Attendance Marked`,
+        body: `Attendance for ${new Date(attendanceDate).toDateString()} has been marked`,
+        type: 'attendance',
+        sentBy: teacherId,
+        sentByName: teacherName,
+        data: { route: '/attendance', attendanceId: attendance.attendanceId }
+      });
+    } catch (notifyError) {
+      console.log('Notification failed (non-critical):', notifyError.message);
+    }
 
     res.status(201).json({ success: true, attendance });
   } catch (error) {
@@ -85,44 +89,30 @@ exports.createAttendance = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────
 // GET SINGLE ATTENDANCE
-// ─────────────────────────────────────────────
 exports.getAttendance = async (req, res) => {
   try {
     const { attendanceId } = req.params;
-
     const attendance = await Attendance.findOne({ attendanceId });
     if (!attendance) return res.status(404).json({ error: 'Attendance not found' });
-
     res.json({ success: true, attendance });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// ─────────────────────────────────────────────
 // GET ALL ATTENDANCE BY CLASSID
-// ─────────────────────────────────────────────
 exports.getAttendanceByClass = async (req, res) => {
   try {
     const { classId } = req.params;
-
     const attendances = await Attendance.find({ classId }).sort({ attendanceDate: -1 });
-
-    res.json({
-      success: true,
-      count: attendances.length,
-      attendances
-    });
+    res.json({ success: true, count: attendances.length, attendances });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// ─────────────────────────────────────────────
 // GET ATTENDANCE BY CLASSID + DATE
-// ─────────────────────────────────────────────
 exports.getAttendanceByClassAndDate = async (req, res) => {
   try {
     const { classId, date } = req.params;
@@ -147,29 +137,18 @@ exports.getAttendanceByClassAndDate = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────
 // GET ALL ATTENDANCE BY ORGID
-// ─────────────────────────────────────────────
 exports.getAttendanceByOrg = async (req, res) => {
   try {
     const { orgId } = req.params;
-
     const attendances = await Attendance.find({ orgId }).sort({ attendanceDate: -1 });
-
-    res.json({
-      success: true,
-      count: attendances.length,
-      attendances
-    });
+    res.json({ success: true, count: attendances.length, attendances });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// ─────────────────────────────────────────────
 // GET ATTENDANCE SUMMARY FOR A STUDENT
-// (how many days present/absent across all dates)
-// ─────────────────────────────────────────────
 exports.getStudentAttendanceSummary = async (req, res) => {
   try {
     const { classId, studentId } = req.params;
@@ -191,11 +170,7 @@ exports.getStudentAttendanceSummary = async (req, res) => {
         totalDays++;
         if (studentRecord.attendance === 'Present') totalPresent++;
         else totalAbsent++;
-
-        records.push({
-          date: att.attendanceDate,
-          attendance: studentRecord.attendance
-        });
+        records.push({ date: att.attendanceDate, attendance: studentRecord.attendance });
       }
     }
 
@@ -205,11 +180,8 @@ exports.getStudentAttendanceSummary = async (req, res) => {
 
     res.json({
       success: true,
-      studentId,
-      classId,
-      totalDays,
-      totalPresent,
-      totalAbsent,
+      studentId, classId, totalDays,
+      totalPresent, totalAbsent,
       attendancePercentage: `${attendancePercentage}%`,
       records
     });
@@ -218,9 +190,7 @@ exports.getStudentAttendanceSummary = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────
-// UPDATE ATTENDANCE (fix wrong entries)
-// ─────────────────────────────────────────────
+// UPDATE ATTENDANCE
 exports.updateAttendance = async (req, res) => {
   try {
     const { attendanceId } = req.params;
@@ -233,7 +203,6 @@ exports.updateAttendance = async (req, res) => {
       return res.status(400).json({ error: 'students list required' });
     }
 
-    // Validate each student
     for (const s of students) {
       if (!s.studentId || !s.name || !s.attendance) {
         return res.status(400).json({ error: 'Each student needs studentId, name, attendance' });
@@ -244,7 +213,6 @@ exports.updateAttendance = async (req, res) => {
     }
 
     const { totalPresent, totalAbsent } = calculateTotals(students);
-
     attendance.students = students;
     attendance.totalPresent = totalPresent;
     attendance.totalAbsent = totalAbsent;
@@ -256,9 +224,7 @@ exports.updateAttendance = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────
 // UPDATE SINGLE STUDENT ATTENDANCE
-// ─────────────────────────────────────────────
 exports.updateStudentAttendance = async (req, res) => {
   try {
     const { attendanceId } = req.params;
@@ -267,7 +233,6 @@ exports.updateStudentAttendance = async (req, res) => {
     if (!studentId || !newAttendance) {
       return res.status(400).json({ error: 'studentId and attendance required' });
     }
-
     if (!['Present', 'Absent'].includes(newAttendance)) {
       return res.status(400).json({ error: 'attendance must be "Present" or "Absent"' });
     }
@@ -279,7 +244,6 @@ exports.updateStudentAttendance = async (req, res) => {
     if (!student) return res.status(404).json({ error: 'Student not found in this attendance' });
 
     student.attendance = newAttendance;
-
     const { totalPresent, totalAbsent } = calculateTotals(attendance.students);
     attendance.totalPresent = totalPresent;
     attendance.totalAbsent = totalAbsent;
@@ -296,16 +260,12 @@ exports.updateStudentAttendance = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────
 // DELETE ATTENDANCE
-// ─────────────────────────────────────────────
 exports.deleteAttendance = async (req, res) => {
   try {
     const { attendanceId } = req.params;
-
     const attendance = await Attendance.findOneAndDelete({ attendanceId });
     if (!attendance) return res.status(404).json({ error: 'Attendance not found' });
-
     res.json({
       success: true,
       message: `Attendance for ${new Date(attendance.attendanceDate).toDateString()} deleted`
@@ -315,15 +275,11 @@ exports.deleteAttendance = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────
 // DELETE ALL ATTENDANCE BY CLASSID
-// ─────────────────────────────────────────────
 exports.deleteAttendanceByClass = async (req, res) => {
   try {
     const { classId } = req.params;
-
     const result = await Attendance.deleteMany({ classId });
-
     res.json({
       success: true,
       message: `${result.deletedCount} attendance record(s) deleted for class ${classId}`,
@@ -333,15 +289,3 @@ exports.deleteAttendanceByClass = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-
-await notifyClass({
-  classId,
-  orgId,
-  title: `✅ Attendance Marked`,
-  body: `Attendance for ${new Date(attendanceDate).toDateString()} has been marked`,
-  type: 'attendance',
-  sentBy: teacherId,
-  sentByName: teacherName,
-  data: { route: '/attendance', attendanceId: attendance.attendanceId }
-});

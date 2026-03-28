@@ -1,6 +1,7 @@
 const Notice = require('../models/Notice');
 const Classroom = require('../models/Classroom');
 const { cloudinary } = require('../config/cloudinary');
+const { notifyClass } = require('../utils/sendNotification');  // ← ADD THIS
 
 const generateNoticeId = () => `NTC_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
@@ -16,7 +17,6 @@ exports.createNotice = async (req, res) => {
     const classroom = await Classroom.findOne({ classId: classroomId });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
-    // Handle file attachments
     const attachments = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
@@ -44,6 +44,22 @@ exports.createNotice = async (req, res) => {
       attachments
     });
 
+    // ✅ Send notification — inside try/catch so it won't break the API
+    try {
+      await notifyClass({
+        classId: classroomId,
+        orgId: classroom.orgId,
+        title: `📢 New Notice: ${title}`,
+        body: description.substring(0, 100),
+        type: 'notice',
+        sentBy: createdBy,
+        sentByName: createdBy,
+        data: { route: '/notices', noticeId: notice.noticeId }
+      });
+    } catch (notifyError) {
+      console.log('Notification failed (non-critical):', notifyError.message);
+    }
+
     res.status(201).json({ success: true, notice });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -55,7 +71,6 @@ exports.getNoticesByClassroom = async (req, res) => {
   try {
     const { classId } = req.params;
 
-    // Delete expired notices + cleanup cloudinary
     const expiredNotices = await Notice.find({
       classroomId: classId,
       expiresAt: { $lt: new Date() }
@@ -74,14 +89,9 @@ exports.getNoticesByClassroom = async (req, res) => {
       expiresAt: { $lt: new Date() }
     });
 
-    // Return active notices
     const notices = await Notice.find({ classroomId: classId }).sort({ createdAt: -1 });
 
-    res.json({
-      success: true,
-      count: notices.length,
-      notices
-    });
+    res.json({ success: true, count: notices.length, notices });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -113,7 +123,6 @@ exports.updateNotice = async (req, res) => {
     if (description) notice.description = description;
     if (expiresAt) notice.expiresAt = new Date(expiresAt);
 
-    // Append new attachments if uploaded
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
         const isPdf = file.mimetype === 'application/pdf';
@@ -161,7 +170,6 @@ exports.deleteNotice = async (req, res) => {
     const notice = await Notice.findOne({ noticeId });
     if (!notice) return res.status(404).json({ error: 'Notice not found' });
 
-    // Cleanup cloudinary attachments
     for (const att of notice.attachments) {
       await cloudinary.uploader.destroy(att.publicId, {
         resource_type: att.type === 'pdf' ? 'raw' : 'image'
@@ -175,7 +183,7 @@ exports.deleteNotice = async (req, res) => {
   }
 };
 
-// PURGE EXPIRED NOTICES BY CLASSID (Manual trigger endpoint)
+// PURGE EXPIRED NOTICES
 exports.purgeExpiredNotices = async (req, res) => {
   try {
     const { classId } = req.params;
@@ -211,14 +219,3 @@ exports.purgeExpiredNotices = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-await notifyClass({
-  classId,
-  orgId,
-  title: `📢 New Notice: ${title}`,
-  body: description.substring(0, 100),
-  type: 'notice',
-  sentBy: createdBy,
-  sentByName: createdBy,
-  data: { route: '/notices', noticeId: notice.noticeId }
-});
