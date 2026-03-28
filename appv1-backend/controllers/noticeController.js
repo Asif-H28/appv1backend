@@ -211,3 +211,14 @@ exports.purgeExpiredNotices = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+await notifyClass({
+  classId,
+  orgId,
+  title: `📢 New Notice: ${title}`,
+  body: description.substring(0, 100),
+  type: 'notice',
+  sentBy: createdBy,
+  sentByName: createdBy,
+  data: { route: '/notices', noticeId: notice.noticeId }
+});

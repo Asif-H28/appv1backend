@@ -399,3 +399,16 @@ exports.deleteResultsByTest = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+await notifyStudent({
+  studentId,
+  orgId: test.orgId,
+  classId: test.classId,
+  title: `📊 Result Published: ${test.testModule}`,
+  body: `You scored ${percentage}% — Grade ${grade}`,
+  type: 'result',
+  sentBy: publishedBy,
+  sentByName: publishedBy,
+  data: { route: '/results', resultId: result.resultId }
+});

@@ -1,4 +1,5 @@
 const express = require('express');
+require('./config/firebase');   // ← ADD THIS at top
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -91,7 +92,7 @@ app.use('/api/student', require('./routes/student'));
 app.use('/api/join', require('./routes/classJoin'));
 
 
-
+app.use('/api/notification', require('./routes/notification'));  // ← ADD THIS
 
 
 

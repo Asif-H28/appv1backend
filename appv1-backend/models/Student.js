@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');   // ← THIS LINE IS MISSING, ADD IT
+const mongoose = require('mongoose');
 
 const studentSchema = new mongoose.Schema({
   studentId: { type: String, required: true, unique: true },
@@ -15,7 +15,8 @@ const studentSchema = new mongoose.Schema({
     type: String,
     enum: ['none', 'pending', 'approved', 'rejected'],
     default: 'none'
-  }
+  },
+  fcmToken: { type: String, default: null }   // ← ADDED
 }, { timestamps: true });
 
 module.exports = mongoose.model('Student', studentSchema);

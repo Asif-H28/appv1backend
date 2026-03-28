@@ -188,3 +188,25 @@ exports.removeStudent = async (req, res) => {
   }
 };
 
+await notifyStudent({
+  studentId: request.studentId,
+  orgId: request.orgId,
+  classId: request.classId,
+  title: `🎉 Join Request Approved!`,
+  body: `You have been added to ${request.className}`,
+  type: 'join_request',
+  sentBy: 'system',
+  sentByName: 'System',
+  data: { route: '/home' }
+});
+
+// After rejection
+await notifyStudent({
+  studentId: request.studentId,
+  title: `❌ Join Request Rejected`,
+  body: `Your request to join ${request.className} was rejected`,
+  type: 'join_request',
+  sentBy: 'system',
+  sentByName: 'System',
+  data: { route: '/home' }
+});

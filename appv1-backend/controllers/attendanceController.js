@@ -333,3 +333,15 @@ exports.deleteAttendanceByClass = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+await notifyClass({
+  classId,
+  orgId,
+  title: `✅ Attendance Marked`,
+  body: `Attendance for ${new Date(attendanceDate).toDateString()} has been marked`,
+  type: 'attendance',
+  sentBy: teacherId,
+  sentByName: teacherName,
+  data: { route: '/attendance', attendanceId: attendance.attendanceId }
+});
