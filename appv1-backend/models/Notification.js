@@ -7,17 +7,17 @@ const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: [
-      'notice',        // new notice posted
-      'result',        // result published
-      'attendance',    // attendance marked
-      'timetable',     // timetable updated
-      'join_request',  // join request approved/rejected
-      'announcement',  // org-wide announcement
-      'general'        // general notification
+      'notice',
+      'result',
+      'attendance',
+      'timetable',
+      'join_request',
+      'announcement',
+      'general'
     ],
     required: true
   },
-  sentBy: { type: String, required: true },       // teacherId or adminId
+  sentBy: { type: String, required: true },
   sentByName: { type: String, required: true },
   targetRole: {
     type: String,
@@ -26,11 +26,12 @@ const notificationSchema = new mongoose.Schema({
   },
   classId: { type: String, default: null },
   orgId: { type: String, default: null },
-  studentId: { type: String, default: null },     // if targeted to one student
-  referenceId: { type: String, default: null },   // noticeId / resultId etc
+  studentId: { type: String, default: null },
+  referenceId: { type: String, default: null },
   totalSent: { type: Number, default: 0 },
   totalFailed: { type: Number, default: 0 },
-  data: { type: Object, default: {} }             // extra payload for navigation
+  data: { type: Object, default: {} },
+  readBy: { type: [String], default: [] }   // ← ADDED: stores studentIds/teacherIds who read it
 }, { timestamps: true });
 
 module.exports = mongoose.model('Notification', notificationSchema);

@@ -7,7 +7,11 @@ const {
   sendToStudent,
   sendToOrg,
   getNotificationsByClass,
-  getNotificationsByOrg
+  getNotificationsByOrg,
+  getNotificationsByStudent,
+  markAsRead,
+  markAllAsRead,
+  getUnreadCount
 } = require('../controllers/notificationController');
 
 router.post('/fcm/student', saveStudentFcmToken);
@@ -17,5 +21,9 @@ router.post('/send/student', sendToStudent);
 router.post('/send/org', sendToOrg);
 router.get('/class/:classId', getNotificationsByClass);
 router.get('/org/:orgId', getNotificationsByOrg);
+router.get('/student/:studentId', getNotificationsByStudent);
+router.put('/:notificationId/read', markAsRead);             // ← NEW
+router.put('/class/:classId/read-all', markAllAsRead);       // ← NEW
+router.get('/class/:classId/unread/:userId', getUnreadCount); // ← NEW
 
 module.exports = router;
