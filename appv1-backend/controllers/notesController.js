@@ -1,6 +1,7 @@
 const Notes = require('../models/Notes');
 const Classroom = require('../models/Classroom');
 const { cloudinary } = require('../config/cloudinary');
+const { notifyClass } = require('../utils/sendNotification');  // ← ADDED
 
 const generateNotesId = () => `NTS_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
@@ -39,13 +40,26 @@ exports.createNote = async (req, res) => {
     }
 
     const note = await Notes.create({
-      notesId,
-      title,
-      notesSharedBy,
-      classId,
-      orgId,
-      attachments
+      notesId, title,
+      notesSharedBy, classId,
+      orgId, attachments
     });
+
+    // ✅ Notify class on create — NEW ADDITION
+    try {
+      await notifyClass({
+        classId,
+        orgId,
+        title: `📚 New Notes Shared: ${title}`,
+        body: `${notesSharedBy} shared new notes for your class`,
+        type: 'general',
+        sentBy: notesSharedBy,
+        sentByName: notesSharedBy,
+        data: { route: '/notes', notesId: note.notesId }
+      });
+    } catch (notifyError) {
+      console.log('Notification failed (non-critical):', notifyError.message);
+    }
 
     res.status(201).json({ success: true, note });
   } catch (error) {
@@ -63,11 +77,7 @@ exports.getNotesByClass = async (req, res) => {
 
     const notes = await Notes.find({ classId }).sort({ createdAt: -1 });
 
-    res.json({
-      success: true,
-      count: notes.length,
-      notes
-    });
+    res.json({ success: true, count: notes.length, notes });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -77,14 +87,8 @@ exports.getNotesByClass = async (req, res) => {
 exports.getNotesByOrg = async (req, res) => {
   try {
     const { orgId } = req.params;
-
     const notes = await Notes.find({ orgId }).sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      count: notes.length,
-      notes
-    });
+    res.json({ success: true, count: notes.length, notes });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -96,14 +100,13 @@ exports.getNote = async (req, res) => {
     const { notesId } = req.params;
     const note = await Notes.findOne({ notesId });
     if (!note) return res.status(404).json({ error: 'Note not found' });
-
     res.json({ success: true, note });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// UPDATE NOTE (title / append attachments)
+// UPDATE NOTE
 exports.updateNote = async (req, res) => {
   try {
     const { notesId } = req.params;
@@ -115,7 +118,6 @@ exports.updateNote = async (req, res) => {
     if (title) note.title = title;
     if (notesSharedBy) note.notesSharedBy = notesSharedBy;
 
-    // Append new attachments
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
         const isPdf = file.mimetype === 'application/pdf';
@@ -153,11 +155,7 @@ exports.deleteAttachment = async (req, res) => {
     note.attachments = note.attachments.filter(a => a.publicId !== publicId);
     await note.save();
 
-    res.json({
-      success: true,
-      message: 'Attachment deleted',
-      attachments: note.attachments
-    });
+    res.json({ success: true, message: 'Attachment deleted', attachments: note.attachments });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -171,7 +169,6 @@ exports.deleteNote = async (req, res) => {
     const note = await Notes.findOne({ notesId });
     if (!note) return res.status(404).json({ error: 'Note not found' });
 
-    // Cleanup all cloudinary attachments
     for (const att of note.attachments) {
       await cloudinary.uploader.destroy(att.publicId, {
         resource_type: att.type === 'pdf' ? 'raw' : 'image'
@@ -179,7 +176,6 @@ exports.deleteNote = async (req, res) => {
     }
 
     await Notes.findOneAndDelete({ notesId });
-
     res.json({ success: true, message: `Note "${note.title}" deleted` });
   } catch (error) {
     res.status(500).json({ error: error.message });

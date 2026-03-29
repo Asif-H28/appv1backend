@@ -2,7 +2,7 @@ const Result = require('../models/Result');
 const Test = require('../models/Test');
 const Student = require('../models/Student');
 const Classroom = require('../models/Classroom');
-const { notifyStudent } = require('../utils/sendNotification');  // ← ADDED
+const { notifyStudent } = require('../utils/sendNotification');
 
 const generateResultId = () => `RES_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
@@ -84,7 +84,7 @@ exports.publishResult = async (req, res) => {
       publishedAt: new Date()
     });
 
-    // ✅ MOVED INSIDE FUNCTION
+    // ✅ Notify on publish
     try {
       await notifyStudent({
         studentId,
@@ -315,17 +315,36 @@ exports.updateResult = async (req, res) => {
     });
 
     const percentage = parseFloat(((totalScoredMarks / totalMaximumMarks) * 100).toFixed(2));
+    const grade = calculateGrade(percentage);
 
     result.subjectResults = fullSubjectResults;
     result.totalScoredMarks = totalScoredMarks;
     result.totalMaximumMarks = totalMaximumMarks;
     result.percentage = percentage;
     result.overallStatus = anyFail ? 'fail' : 'pass';
-    result.grade = calculateGrade(percentage);
+    result.grade = grade;
     if (publishedBy) result.publishedBy = publishedBy;
     result.publishedAt = new Date();
 
     await result.save();
+
+    // ✅ Notify on update — NEW ADDITION
+    try {
+      await notifyStudent({
+        studentId: result.studentId,
+        orgId: result.orgId,
+        classId: result.classId,
+        title: `✏️ Result Updated: ${test.testModule}`,
+        body: `Your result was updated. New score: ${percentage}% — Grade ${grade}`,
+        type: 'result',
+        sentBy: publishedBy || result.publishedBy,
+        sentByName: publishedBy || result.publishedBy,
+        data: { route: '/results', resultId: result.resultId }
+      });
+    } catch (notifyError) {
+      console.log('Notification failed (non-critical):', notifyError.message);
+    }
+
     res.json({ success: true, result });
   } catch (error) {
     res.status(500).json({ error: error.message });
