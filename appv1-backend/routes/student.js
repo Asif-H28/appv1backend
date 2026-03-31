@@ -17,5 +17,6 @@ router.get('/orgs/:orgId/classes', listClassesByOrg);
 router.post('/join-request', sendJoinRequest);
 router.get('/profile/:studentId', getStudentProfile);
 router.put('/profile/:studentId', updateStudentProfile);
+router.get('/class/:classId', getStudentsByClass);  // ← ADD THIS
 
 module.exports = router;

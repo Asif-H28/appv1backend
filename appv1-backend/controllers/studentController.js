@@ -285,3 +285,28 @@ exports.updateStudentProfile = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+
+// GET ALL STUDENTS BY CLASSID
+exports.getStudentsByClass = async (req, res) => {
+  try {
+    const { classId } = req.params;
+
+    const classroom = await Classroom.findOne({ classId });
+    if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
+
+    const students = await Student.find(
+      { classId, joinStatus: 'approved' },
+      '-password -fcmToken'
+    ).sort({ name: 1 });
+
+    res.json({
+      success: true,
+      count: students.length,
+      students
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
