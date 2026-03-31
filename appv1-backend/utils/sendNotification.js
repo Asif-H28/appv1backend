@@ -45,10 +45,10 @@ const sendToTokens = async (tokens, title, body, data = {}) => {
 };
 
 // ─────────────────────────────────────────────
-// CLEAN UP INVALID TOKENS
+// CLEAN UP INVALID TOKENS (FCM rejected)
 // ─────────────────────────────────────────────
 const cleanInvalidTokens = async (failedTokens) => {
-  if (failedTokens.length === 0) return;
+  if (!failedTokens || failedTokens.length === 0) return;
   await Student.updateMany(
     { fcmToken: { $in: failedTokens } },
     { $set: { fcmToken: null } }
@@ -60,15 +60,40 @@ const cleanInvalidTokens = async (failedTokens) => {
 };
 
 // ─────────────────────────────────────────────
+// SAFE TOKEN FILTER — strips null/empty/undefined
+// ─────────────────────────────────────────────
+const filterValidTokens = (tokens) =>
+  tokens.filter(t => t && typeof t === 'string' && t.trim() !== '');
+
+// ─────────────────────────────────────────────
 // NOTIFY ALL STUDENTS IN A CLASS
 // ─────────────────────────────────────────────
 const notifyClass = async ({ classId, orgId, title, body, type, sentBy, sentByName, data = {} }) => {
   const students = await Student.find(
-    { classId, fcmToken: { $exists: true, $ne: null } },
+    { classId, fcmToken: { $exists: true, $ne: null, $ne: '' } },  // ← guard empty string too
     'fcmToken'
   );
 
-  const tokens = students.map(s => s.fcmToken);
+  const tokens = filterValidTokens(students.map(s => s.fcmToken));  // ← double safety filter
+
+  if (tokens.length === 0) {
+    // Still save notification record even if no tokens
+    let notificationId = generateNotificationId();
+    while (await Notification.findOne({ notificationId })) {
+      notificationId = generateNotificationId();
+    }
+    await Notification.create({
+      notificationId, title, body, type,
+      sentBy, sentByName,
+      targetRole: 'student',
+      classId, orgId,
+      totalSent: 0,
+      totalFailed: 0,
+      data
+    });
+    return { successCount: 0, failureCount: 0 };
+  }
+
   const result = await sendToTokens(tokens, title, body, data);
   await cleanInvalidTokens(result.failedTokens);
 
@@ -95,7 +120,11 @@ const notifyClass = async ({ classId, orgId, title, body, type, sentBy, sentByNa
 // ─────────────────────────────────────────────
 const notifyStudent = async ({ studentId, orgId, classId, title, body, type, sentBy, sentByName, data = {} }) => {
   const student = await Student.findOne({ studentId }, 'fcmToken');
-  if (!student || !student.fcmToken) return { successCount: 0, failureCount: 0 };
+
+  // ✅ Guard: skip if no token or empty string
+  if (!student || !student.fcmToken || student.fcmToken.trim() === '') {
+    return { successCount: 0, failureCount: 0 };
+  }
 
   const result = await sendToTokens([student.fcmToken], title, body, data);
   await cleanInvalidTokens(result.failedTokens);
@@ -119,7 +148,7 @@ const notifyStudent = async ({ studentId, orgId, classId, title, body, type, sen
 };
 
 // ─────────────────────────────────────────────
-// NOTIFY ALL STUDENTS IN ORG
+// NOTIFY ALL STUDENTS / TEACHERS IN ORG
 // ─────────────────────────────────────────────
 const notifyOrg = async ({ orgId, targetRole = 'student', title, body, type, sentBy, sentByName, data = {} }) => {
   let tokens = [];
@@ -139,6 +168,8 @@ const notifyOrg = async ({ orgId, targetRole = 'student', title, body, type, sen
     );
     tokens.push(...teachers.map(t => t.fcmToken));
   }
+
+  tokens = filterValidTokens(tokens);  // ← strip any empty strings
 
   const result = await sendToTokens(tokens, title, body, data);
   await cleanInvalidTokens(result.failedTokens);

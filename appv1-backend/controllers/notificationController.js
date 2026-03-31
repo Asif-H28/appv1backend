@@ -215,3 +215,36 @@ exports.getUnreadCount = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+// CLEAR FCM TOKEN — STUDENT LOGOUT
+exports.clearStudentFcmToken = async (req, res) => {
+  try {
+    const { studentId } = req.body;
+    if (!studentId) {
+      return res.status(400).json({ error: 'studentId required' });
+    }
+
+    await Student.findOneAndUpdate({ studentId }, { fcmToken: null });
+
+    res.json({ success: true, message: 'Student FCM token cleared' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// CLEAR FCM TOKEN — TEACHER LOGOUT
+exports.clearTeacherFcmToken = async (req, res) => {
+  try {
+    const { teacherId } = req.body;
+    if (!teacherId) {
+      return res.status(400).json({ error: 'teacherId required' });
+    }
+
+    await Teacher.findOneAndUpdate({ teacherId }, { fcmToken: null });
+
+    res.json({ success: true, message: 'Teacher FCM token cleared' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

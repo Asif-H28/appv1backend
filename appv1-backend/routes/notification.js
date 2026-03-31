@@ -26,4 +26,7 @@ router.put('/:notificationId/read', markAsRead);             // ← NEW
 router.put('/class/:classId/read-all', markAllAsRead);       // ← NEW
 router.get('/class/:classId/unread/:userId', getUnreadCount); // ← NEW
 
+router.post('/fcm/student/clear', clearStudentFcmToken);  // ← NEW
+router.post('/fcm/teacher/clear', clearTeacherFcmToken);  // ← NEW
+
 module.exports = router;
