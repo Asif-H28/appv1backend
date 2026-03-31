@@ -11,7 +11,9 @@ const {
   getNotificationsByStudent,
   markAsRead,
   markAllAsRead,
-  getUnreadCount
+  getUnreadCount,
+    clearStudentFcmToken,    // ← ADD THIS
+  clearTeacherFcmToken,    // ← ADD THIS
 } = require('../controllers/notificationController');
 
 router.post('/fcm/student', saveStudentFcmToken);
