@@ -7,7 +7,8 @@ const {
   listClassesByOrg,
   sendJoinRequest,
   getStudentProfile,
-    updateStudentProfile  
+    updateStudentProfile,  
+    getStudentsByClass
 } = require('../controllers/studentController');
 
 router.post('/register', register);
