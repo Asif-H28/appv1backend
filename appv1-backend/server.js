@@ -96,6 +96,9 @@ app.use('/api/notification', require('./routes/notification'));
 const leaveRoutes = require('./routes/leave');  // ← ADD THIS
 app.use('/api/leave', leaveRoutes);
 
+const achievementRoutes = require('./routes/achievement');
+app.use('/api/achievement', achievementRoutes);
+
 
 
 
