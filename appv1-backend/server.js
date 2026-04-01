@@ -92,7 +92,9 @@ app.use('/api/student', require('./routes/student'));
 app.use('/api/join', require('./routes/classJoin'));
 
 
-app.use('/api/notification', require('./routes/notification'));  // ← ADD THIS
+app.use('/api/notification', require('./routes/notification'));
+const leaveRoutes = require('./routes/leave');  // ← ADD THIS
+app.use('/api/leave', leaveRoutes);
 
 
 
