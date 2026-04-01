@@ -1,11 +1,12 @@
-const TeacherLeave = require('../models/TeacherLeave');
-const StudentLeave = require('../models/StudentLeave');
-const Teacher = require('../models/Teacher');
-const Student = require('../models/Student');
-const Classroom = require('../models/Classroom');
-const { notifyStudent, notifyClass } = require('../utils/sendNotification');
+const TeacherLeave = require("../models/TeacherLeave");
+const StudentLeave = require("../models/StudentLeave");
+const Teacher = require("../models/Teacher");
+const Student = require("../models/Student");
+const Classroom = require("../models/Classroom");
+const { notifyStudent, notifyClass } = require("../utils/sendNotification");
 
-const generateLeaveId = () => `LEV_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+const generateLeaveId = () =>
+  `LEV_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
 // ─────────────────────────────────────────────
 // TEACHER — APPLY LEAVE
@@ -15,11 +16,13 @@ exports.teacherApplyLeave = async (req, res) => {
     const { teacherId, orgId, reason, dates } = req.body;
 
     if (!teacherId || !orgId || !reason || !dates || dates.length === 0) {
-      return res.status(400).json({ error: 'teacherId, orgId, reason, dates[] required' });
+      return res
+        .status(400)
+        .json({ error: "teacherId, orgId, reason, dates[] required" });
     }
 
     const teacher = await Teacher.findOne({ teacherId });
-    if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
+    if (!teacher) return res.status(404).json({ error: "Teacher not found" });
 
     let leaveId = generateLeaveId();
     while (await TeacherLeave.findOne({ leaveId })) {
@@ -34,7 +37,7 @@ exports.teacherApplyLeave = async (req, res) => {
       reason,
       dates,
       totalDays: dates.length,
-      status: 'pending'
+      status: "pending",
     });
 
     res.status(201).json({ success: true, leave });
@@ -49,7 +52,9 @@ exports.teacherApplyLeave = async (req, res) => {
 exports.getTeacherLeaves = async (req, res) => {
   try {
     const { teacherId } = req.params;
-    const leaves = await TeacherLeave.find({ teacherId }).sort({ createdAt: -1 });
+    const leaves = await TeacherLeave.find({ teacherId }).sort({
+      createdAt: -1,
+    });
     res.json({ success: true, count: leaves.length, leaves });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -78,15 +83,18 @@ exports.reviewTeacherLeave = async (req, res) => {
     const { status, reviewedBy, reviewNote } = req.body;
 
     if (!status || !reviewedBy) {
-      return res.status(400).json({ error: 'status and reviewedBy required' });
+      return res.status(400).json({ error: "status and reviewedBy required" });
     }
-    if (!['approved', 'rejected'].includes(status)) {
-      return res.status(400).json({ error: 'status must be "approved" or "rejected"' });
+    if (!["approved", "rejected"].includes(status)) {
+      return res
+        .status(400)
+        .json({ error: 'status must be "approved" or "rejected"' });
     }
 
     const leave = await TeacherLeave.findOne({ leaveId });
-    if (!leave) return res.status(404).json({ error: 'Leave request not found' });
-    if (leave.status !== 'pending') {
+    if (!leave)
+      return res.status(404).json({ error: "Leave request not found" });
+    if (leave.status !== "pending") {
       return res.status(400).json({ error: `Leave already ${leave.status}` });
     }
 
@@ -100,11 +108,13 @@ exports.reviewTeacherLeave = async (req, res) => {
     try {
       const teacher = await Teacher.findOne({ teacherId: leave.teacherId });
       if (teacher?.fcmToken) {
-        const { notifyStudent: notifyUser } = require('../utils/sendNotification');
+        const {
+          notifyStudent: notifyUser,
+        } = require("../utils/sendNotification");
         // Use direct FCM — reuse notifyStudent pattern for teacher
       }
     } catch (e) {
-      console.log('Notify failed (non-critical):', e.message);
+      console.log("Notify failed (non-critical):", e.message);
     }
 
     res.json({ success: true, leave });
@@ -120,12 +130,14 @@ exports.deleteTeacherLeave = async (req, res) => {
   try {
     const { leaveId } = req.params;
     const leave = await TeacherLeave.findOne({ leaveId });
-    if (!leave) return res.status(404).json({ error: 'Leave not found' });
-    if (leave.status !== 'pending') {
-      return res.status(400).json({ error: 'Only pending leaves can be deleted' });
+    if (!leave) return res.status(404).json({ error: "Leave not found" });
+    if (leave.status !== "pending") {
+      return res
+        .status(400)
+        .json({ error: "Only pending leaves can be deleted" });
     }
     await TeacherLeave.findOneAndDelete({ leaveId });
-    res.json({ success: true, message: 'Leave request deleted' });
+    res.json({ success: true, message: "Leave request deleted" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -139,17 +151,22 @@ exports.studentApplyLeave = async (req, res) => {
     const { studentId, reason, dates } = req.body;
 
     if (!studentId || !reason || !dates || dates.length === 0) {
-      return res.status(400).json({ error: 'studentId, reason, dates[] required' });
+      return res
+        .status(400)
+        .json({ error: "studentId, reason, dates[] required" });
     }
 
     const student = await Student.findOne({ studentId });
-    if (!student) return res.status(404).json({ error: 'Student not found' });
-    if (student.joinStatus !== 'approved') {
-      return res.status(403).json({ error: 'Student not approved in any class' });
+    if (!student) return res.status(404).json({ error: "Student not found" });
+    if (student.joinStatus !== "approved") {
+      return res
+        .status(403)
+        .json({ error: "Student not approved in any class" });
     }
 
     const classroom = await Classroom.findOne({ classId: student.classId });
-    if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
+    if (!classroom)
+      return res.status(404).json({ error: "Classroom not found" });
 
     let leaveId = generateLeaveId();
     while (await StudentLeave.findOne({ leaveId })) {
@@ -165,47 +182,53 @@ exports.studentApplyLeave = async (req, res) => {
       reason,
       dates,
       totalDays: dates.length,
-      status: 'pending'
+      status: "pending",
     });
 
     // ✅ NOTIFY CLASS TEACHER
-   // ✅ NOTIFY CLASS TEACHER — using your existing util pattern
-try {
-  const teacher = await Teacher.findOne({ teacherId: classroom.teacherId }, 'fcmToken name');
+    // ✅ NOTIFY CLASS TEACHER — using your existing util pattern
+    try {
+      const teacher = await Teacher.findOne(
+        { teacherId: classroom.teacherId },
+        "fcmToken name",
+      );
 
-  if (teacher && teacher.fcmToken && teacher.fcmToken.trim() !== '') {
-    const { sendToTokens } = require('../utils/sendNotification'); // ← won't work, not exported
+      if (teacher && teacher.fcmToken && teacher.fcmToken.trim() !== "") {
+        const { sendToTokens } = require("../utils/sendNotification"); // ← won't work, not exported
 
-    // ✅ CORRECT — use admin.messaging() directly since sendToTokens is not exported
-    const admin = require('../config/firebase');
+        // ✅ CORRECT — use admin.messaging() directly since sendToTokens is not exported
+        const admin = require("../config/firebase");
 
-    await admin.messaging().sendEachForMulticast({
-      tokens: [teacher.fcmToken],
-      notification: {
-        title: `📋 New Leave Request`,
-        body: `${student.name} has applied for ${leave.totalDays} day(s) leave`
-      },
-      data: {
-        route: 'leave-requests',
-        leaveId: leave.leaveId,
-        studentId: student.studentId,
-        classId: student.classId
-      },
-      android: {
-        priority: 'high',
-        notification: {
-          channelId: 'high_importance_channel',
-          sound: 'default'
-        }
-      },
-      apns: {
-        payload: { aps: { sound: 'default', badge: 1 } }
+        await admin.messaging().sendEachForMulticast({
+          tokens: [teacher.fcmToken],
+          notification: {
+            title: `📋 New Leave Request`,
+            body: `${student.name} has applied for ${leave.totalDays} day(s) leave`,
+          },
+          data: {
+            route: "leave-requests",
+            leaveId: leave.leaveId,
+            studentId: student.studentId,
+            classId: student.classId,
+          },
+          android: {
+            priority: "high",
+            notification: {
+              channelId: "high_importance_channel",
+              sound: "default",
+            },
+          },
+          apns: {
+            payload: { aps: { sound: "default", badge: 1 } },
+          },
+        });
       }
-    });
-  }
-} catch (notifyError) {
-  console.log('Teacher notification failed (non-critical):', notifyError.message);
-}
+    } catch (notifyError) {
+      console.log(
+        "Teacher notification failed (non-critical):",
+        notifyError.message,
+      );
+    }
 
     res.status(201).json({ success: true, leave });
   } catch (error) {
@@ -219,7 +242,9 @@ try {
 exports.getStudentLeaves = async (req, res) => {
   try {
     const { studentId } = req.params;
-    const leaves = await StudentLeave.find({ studentId }).sort({ createdAt: -1 });
+    const leaves = await StudentLeave.find({ studentId }).sort({
+      createdAt: -1,
+    });
     res.json({ success: true, count: leaves.length, leaves });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -245,7 +270,9 @@ exports.getStudentLeavesByClass = async (req, res) => {
 exports.getPendingStudentLeavesByClass = async (req, res) => {
   try {
     const { classId } = req.params;
-    const leaves = await StudentLeave.find({ classId, status: 'pending' }).sort({ createdAt: -1 });
+    const leaves = await StudentLeave.find({ classId, status: "pending" }).sort(
+      { createdAt: -1 },
+    );
     res.json({ success: true, count: leaves.length, leaves });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -261,23 +288,29 @@ exports.reviewStudentLeave = async (req, res) => {
     const { status, reviewedBy, reviewNote } = req.body;
 
     if (!status || !reviewedBy) {
-      return res.status(400).json({ error: 'status and reviewedBy required' });
+      return res.status(400).json({ error: "status and reviewedBy required" });
     }
-    if (!['approved', 'rejected'].includes(status)) {
-      return res.status(400).json({ error: 'status must be "approved" or "rejected"' });
+    if (!["approved", "rejected"].includes(status)) {
+      return res
+        .status(400)
+        .json({ error: 'status must be "approved" or "rejected"' });
     }
 
     const leave = await StudentLeave.findOne({ leaveId });
-    if (!leave) return res.status(404).json({ error: 'Leave request not found' });
-    if (leave.status !== 'pending') {
+    if (!leave)
+      return res.status(404).json({ error: "Leave request not found" });
+    if (leave.status !== "pending") {
       return res.status(400).json({ error: `Leave already ${leave.status}` });
     }
 
     // Verify reviewer is the class teacher
     const classroom = await Classroom.findOne({ classId: leave.classId });
-    if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
+    if (!classroom)
+      return res.status(404).json({ error: "Classroom not found" });
     if (classroom.teacherId !== reviewedBy) {
-      return res.status(403).json({ error: 'Only the class teacher can review this leave' });
+      return res
+        .status(403)
+        .json({ error: "Only the class teacher can review this leave" });
     }
 
     leave.status = status;
@@ -288,23 +321,25 @@ exports.reviewStudentLeave = async (req, res) => {
 
     // ✅ Notify student
     try {
+      const teacher = await Teacher.findOne({ teacherId: reviewedBy }, "name");
+
       await notifyStudent({
         studentId: leave.studentId,
         orgId: leave.orgId,
         classId: leave.classId,
-        title: status === 'approved'
-          ? `✅ Leave Approved`
-          : `❌ Leave Rejected`,
-        body: status === 'approved'
-          ? `Your leave for ${leave.totalDays} day(s) has been approved`
-          : `Your leave request was rejected. ${reviewNote || ''}`,
-        type: 'general',
+        title:
+          status === "approved" ? `✅ Leave Approved` : `❌ Leave Rejected`,
+        body:
+          status === "approved"
+            ? `Your leave for ${leave.totalDays} day(s) has been approved`
+            : `Your leave request was rejected. ${reviewNote || ""}`,
+        type: "general",
         sentBy: reviewedBy,
-        sentByName: reviewedBy,
-        data: { route: '/leaves', leaveId: leave.leaveId }
+        sentByName: teacher?.name || reviewedBy, // ← use actual name
+        data: { route: "/leaves", leaveId: leave.leaveId },
       });
     } catch (notifyError) {
-      console.log('Notification failed (non-critical):', notifyError.message);
+      console.log("Notification failed (non-critical):", notifyError.message);
     }
 
     res.json({ success: true, leave });
@@ -320,12 +355,14 @@ exports.deleteStudentLeave = async (req, res) => {
   try {
     const { leaveId } = req.params;
     const leave = await StudentLeave.findOne({ leaveId });
-    if (!leave) return res.status(404).json({ error: 'Leave not found' });
-    if (leave.status !== 'pending') {
-      return res.status(400).json({ error: 'Only pending leaves can be deleted' });
+    if (!leave) return res.status(404).json({ error: "Leave not found" });
+    if (leave.status !== "pending") {
+      return res
+        .status(400)
+        .json({ error: "Only pending leaves can be deleted" });
     }
     await StudentLeave.findOneAndDelete({ leaveId });
-    res.json({ success: true, message: 'Leave request deleted' });
+    res.json({ success: true, message: "Leave request deleted" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
