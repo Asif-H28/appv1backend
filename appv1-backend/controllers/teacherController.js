@@ -106,11 +106,13 @@ exports.loginTeacher = async (req, res) => {
 exports.updateTeacherProfile = async (req, res) => {
   try {
     const { teacherId } = req.params;
-    const { dob, address, phoneNumber } = req.body;
+    const { name, dob, address, phoneNumber, gender } = req.body;  // ← ADD name, gender
 
     const filteredData = {};
-    if (dob !== undefined) filteredData.dob = dob;
-    if (address !== undefined) filteredData.address = address;
+    if (name !== undefined)        filteredData.name = name;         // ← ADD
+    if (gender !== undefined)      filteredData.gender = gender;     // ← ADD
+    if (dob !== undefined)         filteredData.dob = dob;
+    if (address !== undefined)     filteredData.address = address;
     if (phoneNumber !== undefined) filteredData.phoneNumber = phoneNumber;
 
     const teacher = await Teacher.findOneAndUpdate(
@@ -119,9 +121,7 @@ exports.updateTeacherProfile = async (req, res) => {
       { new: true }
     ).select('-password');
 
-    if (!teacher) {
-      return res.status(404).json({ error: 'Teacher not found' });
-    }
+    if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
 
     res.json({
       success: true,
@@ -130,6 +130,7 @@ exports.updateTeacherProfile = async (req, res) => {
         orgId: teacher.orgId,
         name: teacher.name,
         email: teacher.email,
+        gender: teacher.gender,           // ← ADD
         dob: teacher.dob,
         address: teacher.address,
         phoneNumber: teacher.phoneNumber,
