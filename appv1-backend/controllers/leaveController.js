@@ -168,6 +168,45 @@ exports.studentApplyLeave = async (req, res) => {
       status: 'pending'
     });
 
+    // ✅ NOTIFY CLASS TEACHER
+   // ✅ NOTIFY CLASS TEACHER — using your existing util pattern
+try {
+  const teacher = await Teacher.findOne({ teacherId: classroom.teacherId }, 'fcmToken name');
+
+  if (teacher && teacher.fcmToken && teacher.fcmToken.trim() !== '') {
+    const { sendToTokens } = require('../utils/sendNotification'); // ← won't work, not exported
+
+    // ✅ CORRECT — use admin.messaging() directly since sendToTokens is not exported
+    const admin = require('../config/firebase');
+
+    await admin.messaging().sendEachForMulticast({
+      tokens: [teacher.fcmToken],
+      notification: {
+        title: `📋 New Leave Request`,
+        body: `${student.name} has applied for ${leave.totalDays} day(s) leave`
+      },
+      data: {
+        route: 'leave-requests',
+        leaveId: leave.leaveId,
+        studentId: student.studentId,
+        classId: student.classId
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'high_importance_channel',
+          sound: 'default'
+        }
+      },
+      apns: {
+        payload: { aps: { sound: 'default', badge: 1 } }
+      }
+    });
+  }
+} catch (notifyError) {
+  console.log('Teacher notification failed (non-critical):', notifyError.message);
+}
+
     res.status(201).json({ success: true, leave });
   } catch (error) {
     res.status(500).json({ error: error.message });
