@@ -161,6 +161,7 @@ exports.getTeacherProfile = async (req, res) => {
         email: teacher.email,
         dob: teacher.dob,
         address: teacher.address,
+          gender: teacher.gender,   
         phoneNumber: teacher.phoneNumber,
         verified: teacher.verified,
         createdAt: teacher.createdAt
