@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
 const commentSchema = new mongoose.Schema({
-  commentId:  { type: String, required: true },
-  userId:     { type: String, required: true },   // teacherId or studentId or adminId
-  userName:   { type: String, required: true },
-  userRole:   { type: String, enum: ['teacher', 'student', 'admin'], required: true },
-  text:       { type: String, required: true, trim: true },
-  commentedAt:{ type: Date, default: Date.now }
+  commentId:   { type: String, required: true },
+  userId:      { type: String, required: true },
+  userName:    { type: String, required: true },
+  userRole:    { type: String, enum: ['teacher', 'student', 'admin'], required: true },
+  text:        { type: String, required: true, trim: true },
+  commentedAt: { type: Date, default: Date.now }
 }, { _id: false });
 
 const likeSchema = new mongoose.Schema({
@@ -20,8 +20,8 @@ const achievementSchema = new mongoose.Schema({
   achievementId: { type: String, required: true, unique: true },
 
   // ── Post Content ──
-  caption:   { type: String, default: '' },
-  images:    [{ type: String, required: true }],  // Cloudinary URLs[]
+  caption: { type: String, default: '' },
+  images:  [{ type: String, required: true }],
 
   // ── Teacher (Author) ──
   teacherId:   { type: String, required: true },
@@ -33,7 +33,7 @@ const achievementSchema = new mongoose.Schema({
 
   // ── Org Info ──
   orgId:   { type: String, required: true },
-  orgName: { type: String, required: true },
+  orgName: { type: String, default: '' },    // ✅ optional now
 
   // ── Tagged Students (optional) ──
   taggedStudents: [
