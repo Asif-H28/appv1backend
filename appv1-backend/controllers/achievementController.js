@@ -10,19 +10,23 @@ const generateCommentId = () =>
 // ─────────────────────────────────────────────
 // CREATE ACHIEVEMENT POST
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// CREATE ACHIEVEMENT POST
+// ─────────────────────────────────────────────
 exports.createAchievement = async (req, res) => {
   try {
     const {
       teacherId, teacherName,
       classId, className,
-      orgId, orgName,
+      orgId, orgName,        // ← orgName still destructured but now optional
       caption, images,
       taggedStudents
     } = req.body;
 
-    if (!teacherId || !teacherName || !classId || !className || !orgId || !orgName) {
+    // ✅ orgName removed from required check
+    if (!teacherId || !teacherName || !classId || !className || !orgId) {
       return res.status(400).json({
-        error: 'teacherId, teacherName, classId, className, orgId, orgName required'
+        error: 'teacherId, teacherName, classId, className, orgId required'
       });
     }
 
@@ -41,7 +45,8 @@ exports.createAchievement = async (req, res) => {
       images,
       teacherId, teacherName,
       classId, className,
-      orgId, orgName,
+      orgId,
+      orgName: orgName || '',   // ✅ falls back to empty string if not provided
       taggedStudents: taggedStudents || [],
       likes: [],
       comments: [],
@@ -70,7 +75,6 @@ exports.createAchievement = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 // ─────────────────────────────────────────────
 // GET ALL ACHIEVEMENTS BY ORG (for all 3 roles)
 // ─────────────────────────────────────────────
