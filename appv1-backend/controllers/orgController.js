@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Organization = require('../models/Organization');
+const Teacher = require('../models/Teacher');
 
 // CREATE ORGANIZATION
 exports.createOrganization = async (req, res) => {
@@ -210,6 +211,26 @@ exports.searchOrganization = async (req, res) => {
     });
   } catch (error) {
     console.error('Search org error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getTeacherCountByOrg = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+
+    if (!orgId) {
+      return res.status(400).json({ error: 'orgId required' });
+    }
+
+    const totalTeachers = await Teacher.countDocuments({ orgId });
+
+    res.json({
+      success: true,
+      orgId,
+      totalTeachers
+    });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
