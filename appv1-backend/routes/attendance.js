@@ -23,5 +23,6 @@ router.put('/:attendanceId', updateAttendance);
 router.patch('/:attendanceId/student', updateStudentAttendance);
 router.delete('/class/:classId/all', deleteAttendanceByClass);
 router.delete('/:attendanceId', deleteAttendance);
+router.get('/class/:classId/week', getAttendanceByWeek);
 
 module.exports = router;

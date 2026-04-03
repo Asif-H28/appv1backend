@@ -289,3 +289,86 @@ exports.deleteAttendanceByClass = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// GET ATTENDANCE BY CLASS + YEAR + MONTH + WEEK
+exports.getAttendanceByWeek = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { year, month, week } = req.query;
+    // week = 1 (1st–7th), 2 (8th–14th), 3 (15th–21st), 4 (22nd–28th), 5 (29th–end)
+
+    if (!year || !month || !week) {
+      return res.status(400).json({ error: 'year, month, week query params required' });
+    }
+
+    const y = parseInt(year);
+    const m = parseInt(month) - 1; // JS months 0-indexed
+    const w = parseInt(week);
+
+    if (w < 1 || w > 5) {
+      return res.status(400).json({ error: 'week must be between 1 and 5' });
+    }
+
+    // Calculate week start and end dates
+    const weekStart = (w - 1) * 7 + 1;
+    const weekEnd   = Math.min(w * 7, new Date(y, m + 1, 0).getDate()); // cap to month end
+
+    const startDate = new Date(y, m, weekStart, 0, 0, 0, 0);
+    const endDate   = new Date(y, m, weekEnd, 23, 59, 59, 999);
+
+    const attendances = await Attendance.find({
+      classId,
+      attendanceDate: { $gte: startDate, $lte: endDate }
+    }).sort({ attendanceDate: 1 });
+
+    // Build a day-by-day map for every day in the week range
+    const dailyData = [];
+
+    for (let day = weekStart; day <= weekEnd; day++) {
+      const dayDate  = new Date(y, m, day);
+      const dayLabel = dayDate.toLocaleDateString('en-US', { weekday: 'short' }); // Mon, Tue...
+      const dateStr  = dayDate.toISOString().split('T')[0]; // 2026-04-07
+
+      const record = attendances.find(a => {
+        const d = new Date(a.attendanceDate);
+        return d.getDate() === day && d.getMonth() === m && d.getFullYear() === y;
+      });
+
+      dailyData.push({
+        date:           dateStr,
+        day:            dayLabel,
+        dayNumber:      day,
+        totalPresent:   record ? record.totalPresent  : null,
+        totalAbsent:    record ? record.totalAbsent   : null,
+        totalStudents:  record ? record.students.length : null,
+        attendanceId:   record ? record.attendanceId  : null,
+        marked:         !!record   // true = attendance was taken, false = holiday/not marked
+      });
+    }
+
+    // Week-level totals
+    const markedDays    = dailyData.filter(d => d.marked);
+    const totalPresent  = markedDays.reduce((sum, d) => sum + d.totalPresent, 0);
+    const totalAbsent   = markedDays.reduce((sum, d) => sum + d.totalAbsent,  0);
+    const avgPresent    = markedDays.length > 0
+      ? parseFloat((totalPresent / markedDays.length).toFixed(2))
+      : 0;
+
+    res.json({
+      success: true,
+      classId,
+      year: y,
+      month: parseInt(month),
+      week: w,
+      weekRange: `${dateStr = `${y}-${String(parseInt(month)).padStart(2,'0')}-${String(weekStart).padStart(2,'0')}`} to ${y}-${String(parseInt(month)).padStart(2,'0')}-${String(weekEnd).padStart(2,'0')}`,
+      totalDaysInWeek:  weekEnd - weekStart + 1,
+      totalMarkedDays:  markedDays.length,
+      weekTotalPresent: totalPresent,
+      weekTotalAbsent:  totalAbsent,
+      weekAvgPresent:   avgPresent,
+      dailyData
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
