@@ -1,16 +1,16 @@
-const TeacherLeave = require("../models/TeacherLeave");
-const StudentLeave = require("../models/StudentLeave");
-const Teacher = require("../models/Teacher");
-const Student = require("../models/Student");
-const Classroom = require("../models/Classroom");
+const TeacherLeave  = require("../models/TeacherLeave");
+const StudentLeave  = require("../models/StudentLeave");
+const Teacher       = require("../models/Teacher");
+const Student       = require("../models/Student");
+const Classroom     = require("../models/Classroom");
+const Organization  = require("../models/Organization");
+const admin         = require("../config/firebase");
 const { notifyStudent, notifyClass } = require("../utils/sendNotification");
 
 const generateLeaveId = () =>
   `LEV_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
-// ─────────────────────────────────────────────
-// TEACHER — APPLY LEAVE
-// ─────────────────────────────────────────────
+
 // ─────────────────────────────────────────────
 // TEACHER — APPLY LEAVE
 // ─────────────────────────────────────────────
@@ -45,17 +45,16 @@ exports.teacherApplyLeave = async (req, res) => {
 
     // ✅ NOTIFY ADMIN VIA FCM
     try {
-      const Organization = require("../models/Organization");
-      const admin = require("../config/firebase");
+      const org = await Organization.findOne({ orgId }, "fcmToken");
 
-      const org = await Organization.findOne({ orgId }, "fcmToken adminEmail");
+      console.log("🔍 Org FCM token:", org?.fcmToken ?? "NOT FOUND");
 
-      if (org && org.fcmToken && org.fcmToken.trim() !== "") {
-        await admin.messaging().sendEachForMulticast({
+      if (org?.fcmToken && org.fcmToken.trim() !== "") {
+        const result = await admin.messaging().sendEachForMulticast({
           tokens: [org.fcmToken],
           notification: {
             title: `📋 New Leave Request`,
-            body: `${teacher.name} has applied for ${leave.totalDays} day(s) leave`,
+            body:  `${teacher.name} has applied for ${leave.totalDays} day(s) leave`,
           },
           data: {
             route:     "teacher-leave-requests",
@@ -75,12 +74,12 @@ exports.teacherApplyLeave = async (req, res) => {
           },
         });
 
-        console.log(`✅ Admin notified — ${teacher.name} applied for leave`);
+        console.log("✅ Admin FCM result:", JSON.stringify(result.responses));
       } else {
-        console.log("Admin FCM token not found, skipping notification");
+        console.log("❌ Admin FCM token missing, skipping notification");
       }
     } catch (notifyError) {
-      console.log("Admin notification failed (non-critical):", notifyError.message);
+      console.error("❌ Admin notification FULL ERROR:", notifyError);
     }
 
     res.status(201).json({ success: true, leave });
@@ -88,6 +87,8 @@ exports.teacherApplyLeave = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
 // ─────────────────────────────────────────────
 // TEACHER — GET MY LEAVES
 // ─────────────────────────────────────────────
@@ -103,6 +104,7 @@ exports.getTeacherLeaves = async (req, res) => {
   }
 };
 
+
 // ─────────────────────────────────────────────
 // ADMIN — GET ALL TEACHER LEAVES BY ORG
 // ─────────────────────────────────────────────
@@ -116,9 +118,7 @@ exports.getTeacherLeavesByOrg = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────
-// ADMIN — REVIEW TEACHER LEAVE (approve/reject)
-// ─────────────────────────────────────────────
+
 // ─────────────────────────────────────────────
 // ADMIN — REVIEW TEACHER LEAVE (approve/reject)
 // ─────────────────────────────────────────────
@@ -156,10 +156,10 @@ exports.reviewTeacherLeave = async (req, res) => {
         "fcmToken name"
       );
 
-      if (teacher && teacher.fcmToken && teacher.fcmToken.trim() !== "") {
-        const admin = require("../config/firebase");
+      console.log("🔍 Teacher FCM token:", teacher?.fcmToken ?? "NOT FOUND");
 
-        await admin.messaging().sendEachForMulticast({
+      if (teacher?.fcmToken && teacher.fcmToken.trim() !== "") {
+        const result = await admin.messaging().sendEachForMulticast({
           tokens: [teacher.fcmToken],
           notification: {
             title: status === "approved"
@@ -186,12 +186,12 @@ exports.reviewTeacherLeave = async (req, res) => {
           },
         });
 
-        console.log(`✅ Teacher ${teacher.name} notified — leave ${status}`);
+        console.log("✅ Teacher FCM result:", JSON.stringify(result.responses));
       } else {
-        console.log("Teacher FCM token not found, skipping notification");
+        console.log("❌ Teacher FCM token missing, skipping notification");
       }
     } catch (notifyError) {
-      console.log("Teacher notification failed (non-critical):", notifyError.message);
+      console.error("❌ Teacher notification FULL ERROR:", notifyError);
     }
 
     res.json({ success: true, leave });
@@ -199,6 +199,8 @@ exports.reviewTeacherLeave = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
 // ─────────────────────────────────────────────
 // TEACHER — DELETE OWN PENDING LEAVE
 // ─────────────────────────────────────────────
@@ -218,6 +220,7 @@ exports.deleteTeacherLeave = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // ─────────────────────────────────────────────
 // STUDENT — APPLY LEAVE
@@ -261,49 +264,46 @@ exports.studentApplyLeave = async (req, res) => {
       status: "pending",
     });
 
-    // ✅ NOTIFY CLASS TEACHER
-    // ✅ NOTIFY CLASS TEACHER — using your existing util pattern
+    // ✅ NOTIFY CLASS TEACHER VIA FCM
     try {
       const teacher = await Teacher.findOne(
         { teacherId: classroom.teacherId },
-        "fcmToken name",
+        "fcmToken name"
       );
 
-      if (teacher && teacher.fcmToken && teacher.fcmToken.trim() !== "") {
-        const { sendToTokens } = require("../utils/sendNotification"); // ← won't work, not exported
+      console.log("🔍 Class Teacher FCM token:", teacher?.fcmToken ?? "NOT FOUND");
 
-        // ✅ CORRECT — use admin.messaging() directly since sendToTokens is not exported
-        const admin = require("../config/firebase");
-
-        await admin.messaging().sendEachForMulticast({
+      if (teacher?.fcmToken && teacher.fcmToken.trim() !== "") {
+        const result = await admin.messaging().sendEachForMulticast({
           tokens: [teacher.fcmToken],
           notification: {
             title: `📋 New Leave Request`,
-            body: `${student.name} has applied for ${leave.totalDays} day(s) leave`,
+            body:  `${student.name} has applied for ${leave.totalDays} day(s) leave`,
           },
           data: {
-            route: "leave-requests",
-            leaveId: leave.leaveId,
+            route:     "leave-requests",
+            leaveId:   leave.leaveId,
             studentId: student.studentId,
-            classId: student.classId,
+            classId:   student.classId,
           },
           android: {
             priority: "high",
             notification: {
               channelId: "high_importance_channel",
-              sound: "default",
+              sound:     "default",
             },
           },
           apns: {
             payload: { aps: { sound: "default", badge: 1 } },
           },
         });
+
+        console.log("✅ Class Teacher FCM result:", JSON.stringify(result.responses));
+      } else {
+        console.log("❌ Class Teacher FCM token missing, skipping notification");
       }
     } catch (notifyError) {
-      console.log(
-        "Teacher notification failed (non-critical):",
-        notifyError.message,
-      );
+      console.error("❌ Class Teacher notification FULL ERROR:", notifyError);
     }
 
     res.status(201).json({ success: true, leave });
@@ -311,6 +311,7 @@ exports.studentApplyLeave = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // ─────────────────────────────────────────────
 // STUDENT — GET MY LEAVES
@@ -327,6 +328,7 @@ exports.getStudentLeaves = async (req, res) => {
   }
 };
 
+
 // ─────────────────────────────────────────────
 // TEACHER — GET ALL STUDENT LEAVES BY CLASS
 // ─────────────────────────────────────────────
@@ -340,6 +342,7 @@ exports.getStudentLeavesByClass = async (req, res) => {
   }
 };
 
+
 // ─────────────────────────────────────────────
 // TEACHER — GET PENDING STUDENT LEAVES BY CLASS
 // ─────────────────────────────────────────────
@@ -347,13 +350,14 @@ exports.getPendingStudentLeavesByClass = async (req, res) => {
   try {
     const { classId } = req.params;
     const leaves = await StudentLeave.find({ classId, status: "pending" }).sort(
-      { createdAt: -1 },
+      { createdAt: -1 }
     );
     res.json({ success: true, count: leaves.length, leaves });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // ─────────────────────────────────────────────
 // TEACHER — REVIEW STUDENT LEAVE (approve/reject)
@@ -389,33 +393,33 @@ exports.reviewStudentLeave = async (req, res) => {
         .json({ error: "Only the class teacher can review this leave" });
     }
 
-    leave.status = status;
+    leave.status     = status;
     leave.reviewedBy = reviewedBy;
     leave.reviewNote = reviewNote || null;
     leave.reviewedAt = new Date();
     await leave.save();
 
-    // ✅ Notify student
+    // ✅ NOTIFY STUDENT VIA notifyStudent util
     try {
       const teacher = await Teacher.findOne({ teacherId: reviewedBy }, "name");
 
       await notifyStudent({
-        studentId: leave.studentId,
-        orgId: leave.orgId,
-        classId: leave.classId,
-        title:
-          status === "approved" ? `✅ Leave Approved` : `❌ Leave Rejected`,
-        body:
-          status === "approved"
-            ? `Your leave for ${leave.totalDays} day(s) has been approved`
-            : `Your leave request was rejected. ${reviewNote || ""}`,
-        type: "general",
-        sentBy: reviewedBy,
-        sentByName: teacher?.name || reviewedBy, // ← use actual name
-        data: { route: "/leaves", leaveId: leave.leaveId },
+        studentId:   leave.studentId,
+        orgId:       leave.orgId,
+        classId:     leave.classId,
+        title:       status === "approved" ? `✅ Leave Approved` : `❌ Leave Rejected`,
+        body:        status === "approved"
+          ? `Your leave for ${leave.totalDays} day(s) has been approved`
+          : `Your leave request was rejected. ${reviewNote || ""}`,
+        type:        "general",
+        sentBy:      reviewedBy,
+        sentByName:  teacher?.name || reviewedBy,
+        data:        { route: "/leaves", leaveId: leave.leaveId },
       });
+
+      console.log(`✅ Student ${leave.studentId} notified — leave ${status}`);
     } catch (notifyError) {
-      console.log("Notification failed (non-critical):", notifyError.message);
+      console.error("❌ Student notification FULL ERROR:", notifyError);
     }
 
     res.json({ success: true, leave });
@@ -423,6 +427,7 @@ exports.reviewStudentLeave = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // ─────────────────────────────────────────────
 // STUDENT — DELETE OWN PENDING LEAVE

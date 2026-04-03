@@ -1,20 +1,22 @@
-const mongoose = require('mongoose');
+// models/Organization.js
+const mongoose = require("mongoose");
 
-const organizationSchema = new mongoose.Schema({
-  orgId: { type: String, required: true, unique: true, uppercase: true },
-  name: { type: String, required: true, trim: true, unique: true },
-  adminEmail: { type: String, required: true, lowercase: true, unique: true },
-  adminPassword: { type: String, required: true, minlength: 6 },
-  
-  // NEW FIELDS
-  phone: { type: String, default: '' },
-  address: { type: String, default: '' },
-  city: { type: String, default: '' },
-  state: { type: String, default: '' },
-  country: { type: String, default: 'India' },
-  teachers: { type: Number, default: 0 },
-  nonTeaching: { type: Number, default: 0 },
-  fcmToken:      { type: String, default: null }
-}, { timestamps: true });
+const organizationSchema = new mongoose.Schema(
+  {
+    orgId:         { type: String, required: true, unique: true },
+    name:          { type: String, required: true },
+    adminEmail:    { type: String, required: true },
+    adminPassword: { type: String, required: true },
+    phone:         { type: String, default: null },
+    address:       { type: String, default: null },
+    city:          { type: String, default: null },
+    state:         { type: String, default: null },
+    country:       { type: String, default: null },
+    teachers:      { type: Number, default: 0 },
+    nonTeaching:   { type: Number, default: 0 },
+    fcmToken:      { type: String, default: null }, // ← ADD THIS
+  },
+  { timestamps: true }
+);
 
-module.exports = mongoose.model('Organization', organizationSchema);
+module.exports = mongoose.model("Organization", organizationSchema);
