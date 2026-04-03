@@ -10,7 +10,8 @@ const {
   updateAttendance,
   updateStudentAttendance,
   deleteAttendance,
-  deleteAttendanceByClass
+  deleteAttendanceByClass,
+  getAttendanceByWeek
 } = require('../controllers/attendanceController');
 
 router.post('/create', createAttendance);
