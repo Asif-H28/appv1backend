@@ -1,6 +1,7 @@
 const Notification = require('../models/Notification');
 const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
+const Organization = require('../models/Organization');
 const { notifyClass, notifyStudent, notifyOrg } = require('../utils/sendNotification');
 
 // SAVE FCM TOKEN — STUDENT
@@ -248,3 +249,30 @@ exports.clearTeacherFcmToken = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.saveAdminFcmToken = async (req, res) => {
+  try {
+    const { orgId, fcmToken } = req.body;
+    if (!orgId || !fcmToken) {
+      return res.status(400).json({ error: 'orgId and fcmToken required' });
+    }
+    await Organization.findOneAndUpdate({ orgId }, { fcmToken });
+    res.json({ success: true, message: 'Admin FCM token saved' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// CLEAR FCM TOKEN — ADMIN LOGOUT
+exports.clearAdminFcmToken = async (req, res) => {
+  try {
+    const { orgId } = req.body;
+    if (!orgId) {
+      return res.status(400).json({ error: 'orgId required' });
+    }
+    await Organization.findOneAndUpdate({ orgId }, { fcmToken: null });
+    res.json({ success: true, message: 'Admin FCM token cleared' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}

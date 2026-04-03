@@ -11,6 +11,9 @@ const generateLeaveId = () =>
 // ─────────────────────────────────────────────
 // TEACHER — APPLY LEAVE
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// TEACHER — APPLY LEAVE
+// ─────────────────────────────────────────────
 exports.teacherApplyLeave = async (req, res) => {
   try {
     const { teacherId, orgId, reason, dates } = req.body;
@@ -40,12 +43,51 @@ exports.teacherApplyLeave = async (req, res) => {
       status: "pending",
     });
 
+    // ✅ NOTIFY ADMIN VIA FCM
+    try {
+      const Organization = require("../models/Organization");
+      const admin = require("../config/firebase");
+
+      const org = await Organization.findOne({ orgId }, "fcmToken adminEmail");
+
+      if (org && org.fcmToken && org.fcmToken.trim() !== "") {
+        await admin.messaging().sendEachForMulticast({
+          tokens: [org.fcmToken],
+          notification: {
+            title: `📋 New Leave Request`,
+            body: `${teacher.name} has applied for ${leave.totalDays} day(s) leave`,
+          },
+          data: {
+            route:     "teacher-leave-requests",
+            leaveId:   leave.leaveId,
+            teacherId: teacherId,
+            orgId:     orgId,
+          },
+          android: {
+            priority: "high",
+            notification: {
+              channelId: "high_importance_channel",
+              sound:     "default",
+            },
+          },
+          apns: {
+            payload: { aps: { sound: "default", badge: 1 } },
+          },
+        });
+
+        console.log(`✅ Admin notified — ${teacher.name} applied for leave`);
+      } else {
+        console.log("Admin FCM token not found, skipping notification");
+      }
+    } catch (notifyError) {
+      console.log("Admin notification failed (non-critical):", notifyError.message);
+    }
+
     res.status(201).json({ success: true, leave });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
-
 // ─────────────────────────────────────────────
 // TEACHER — GET MY LEAVES
 // ─────────────────────────────────────────────

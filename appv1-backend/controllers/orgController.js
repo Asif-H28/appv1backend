@@ -234,3 +234,26 @@ exports.getTeacherCountByOrg = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.updateAdminFcmToken = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    const { fcmToken } = req.body;
+
+    if (!fcmToken) {
+      return res.status(400).json({ error: "fcmToken required" });
+    }
+
+    const org = await Organization.findOneAndUpdate(
+      { orgId },
+      { $set: { fcmToken } },
+      { new: true }
+    );
+
+    if (!org) return res.status(404).json({ error: "Organization not found" });
+
+    res.json({ success: true, message: "Admin FCM token updated" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

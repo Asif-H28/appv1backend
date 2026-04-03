@@ -14,6 +14,8 @@ const {
   getUnreadCount,
     clearStudentFcmToken,    // ← ADD THIS
   clearTeacherFcmToken,    // ← ADD THIS
+  saveAdminFcmToken,       // ← ADD THIS
+  clearAdminFcmToken        // ← ADD THIS
 } = require('../controllers/notificationController');
 
 router.post('/fcm/student', saveStudentFcmToken);
@@ -30,5 +32,8 @@ router.get('/class/:classId/unread/:userId', getUnreadCount); // ← NEW
 
 router.post('/fcm/student/clear', clearStudentFcmToken);  // ← NEW
 router.post('/fcm/teacher/clear', clearTeacherFcmToken);  // ← NEW
+
+router.post('/fcm/admin/save',   saveAdminFcmToken);    // ← NEW
+router.post('/fcm/admin/clear',  clearAdminFcmToken); 
 
 module.exports = router;

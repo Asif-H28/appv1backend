@@ -13,7 +13,8 @@ const organizationSchema = new mongoose.Schema({
   state: { type: String, default: '' },
   country: { type: String, default: 'India' },
   teachers: { type: Number, default: 0 },
-  nonTeaching: { type: Number, default: 0 }
+  nonTeaching: { type: Number, default: 0 },
+  fcmToken:      { type: String, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Organization', organizationSchema);
