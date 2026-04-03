@@ -77,6 +77,9 @@ exports.getTeacherLeavesByOrg = async (req, res) => {
 // ─────────────────────────────────────────────
 // ADMIN — REVIEW TEACHER LEAVE (approve/reject)
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// ADMIN — REVIEW TEACHER LEAVE (approve/reject)
+// ─────────────────────────────────────────────
 exports.reviewTeacherLeave = async (req, res) => {
   try {
     const { leaveId } = req.params;
@@ -98,23 +101,55 @@ exports.reviewTeacherLeave = async (req, res) => {
       return res.status(400).json({ error: `Leave already ${leave.status}` });
     }
 
-    leave.status = status;
+    leave.status     = status;
     leave.reviewedBy = reviewedBy;
     leave.reviewNote = reviewNote || null;
     leave.reviewedAt = new Date();
     await leave.save();
 
-    // Notify teacher
+    // ✅ NOTIFY TEACHER VIA FCM
     try {
-      const teacher = await Teacher.findOne({ teacherId: leave.teacherId });
-      if (teacher?.fcmToken) {
-        const {
-          notifyStudent: notifyUser,
-        } = require("../utils/sendNotification");
-        // Use direct FCM — reuse notifyStudent pattern for teacher
+      const teacher = await Teacher.findOne(
+        { teacherId: leave.teacherId },
+        "fcmToken name"
+      );
+
+      if (teacher && teacher.fcmToken && teacher.fcmToken.trim() !== "") {
+        const admin = require("../config/firebase");
+
+        await admin.messaging().sendEachForMulticast({
+          tokens: [teacher.fcmToken],
+          notification: {
+            title: status === "approved"
+              ? `✅ Leave Approved`
+              : `❌ Leave Rejected`,
+            body: status === "approved"
+              ? `Your leave request for ${leave.totalDays} day(s) has been approved`
+              : `Your leave request was rejected. ${reviewNote || ""}`,
+          },
+          data: {
+            route:   "my-leaves",
+            leaveId: leave.leaveId,
+            status:  status,
+          },
+          android: {
+            priority: "high",
+            notification: {
+              channelId: "high_importance_channel",
+              sound:     "default",
+            },
+          },
+          apns: {
+            payload: { aps: { sound: "default", badge: 1 } },
+          },
+        });
+
+        console.log(`✅ Teacher ${teacher.name} notified — leave ${status}`);
+      } else {
+        console.log("Teacher FCM token not found, skipping notification");
       }
-    } catch (e) {
-      console.log("Notify failed (non-critical):", e.message);
+    } catch (notifyError) {
+      console.log("Teacher notification failed (non-critical):", notifyError.message);
     }
 
     res.json({ success: true, leave });
@@ -122,7 +157,6 @@ exports.reviewTeacherLeave = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 // ─────────────────────────────────────────────
 // TEACHER — DELETE OWN PENDING LEAVE
 // ─────────────────────────────────────────────
