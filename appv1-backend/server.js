@@ -99,6 +99,9 @@ app.use('/api/leave', leaveRoutes);
 const achievementRoutes = require('./routes/achievement');
 app.use('/api/achievement', achievementRoutes);
 
+const adminNoticeRoutes = require('./routes/adminNoticeRoutes');
+app.use('/api/admin-notices', adminNoticeRoutes);
+
 
 
 
