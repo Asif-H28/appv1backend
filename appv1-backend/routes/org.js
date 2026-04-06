@@ -1,22 +1,25 @@
 const express = require('express');
-const router = express.Router();
-const { 
-  createOrganization, 
-  adminLogin, 
+const router  = express.Router();
+const {
+  createOrganization,
+  adminLogin,
   updateOrganizationProfile,
   getOrganizationProfile,
   searchOrganization,
-  getTeacherCountByOrg,          // ← NEW
-  updateAdminFcmToken
+  getTeacherCountByOrg,
+  updateAdminFcmToken,
+  getSchoolDetails,      // ← NEW
+  updateSchoolDetails,   // ← NEW
 } = require('../controllers/orgController');
 
-router.post('/create', createOrganization);
-router.post('/admin/login', adminLogin);
-router.put('/:orgId/profile', updateOrganizationProfile);
-router.get('/:orgId/profile', getOrganizationProfile);
-router.get('/search', searchOrganization);               // ← NEW
-router.get('/:orgId/count', getTeacherCountByOrg);
-// routes/orgRoutes.js
-router.put("/:orgId/fcm-token", updateAdminFcmToken);
+router.post('/create',                  createOrganization);
+router.post('/admin/login',             adminLogin);
+router.put ('/:orgId/profile',          updateOrganizationProfile);
+router.get ('/:orgId/profile',          getOrganizationProfile);
+router.get ('/search',                  searchOrganization);
+router.get ('/:orgId/count',            getTeacherCountByOrg);
+router.put ('/:orgId/fcm-token',        updateAdminFcmToken);
+router.get ('/:orgId/school-details',   getSchoolDetails);    // ← NEW
+router.put ('/:orgId/school-details',   updateSchoolDetails); // ← NEW
 
 module.exports = router;

@@ -1,4 +1,3 @@
-// models/Organization.js
 const mongoose = require("mongoose");
 
 const organizationSchema = new mongoose.Schema(
@@ -14,7 +13,13 @@ const organizationSchema = new mongoose.Schema(
     country:       { type: String, default: null },
     teachers:      { type: Number, default: 0 },
     nonTeaching:   { type: Number, default: 0 },
-    fcmToken:      { type: String, default: null }, // ← ADD THIS
+    fcmToken:      { type: String, default: null },
+
+    // ── School Basic Details (4 new fields) ───────────
+    schoolName:     { type: String, default: '' },
+    campusAddress:  { type: String, default: '' },
+    schoolEmail:    { type: String, default: '' },
+    primaryContact: { type: String, default: '' },
   },
   { timestamps: true }
 );

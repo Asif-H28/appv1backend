@@ -257,3 +257,76 @@ exports.updateAdminFcmToken = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+// GET SCHOOL BASIC DETAILS
+exports.getSchoolDetails = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+
+    const organization = await Organization.findOne({ orgId })
+      .select('-adminPassword');
+
+    if (!organization) {
+      return res.status(404).json({ success: false, message: 'Organization not found.' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        orgId:          organization.orgId,
+        schoolName:     organization.schoolName     || '',
+        campusAddress:  organization.campusAddress  || '',
+        schoolEmail:    organization.schoolEmail    || '',
+        primaryContact: organization.primaryContact || '',
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// UPDATE SCHOOL BASIC DETAILS
+exports.updateSchoolDetails = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    const { schoolName, campusAddress, schoolEmail, primaryContact } = req.body;
+
+    const filteredData = {};
+    if (schoolName     !== undefined) filteredData.schoolName     = schoolName;
+    if (campusAddress  !== undefined) filteredData.campusAddress  = campusAddress;
+    if (schoolEmail    !== undefined) filteredData.schoolEmail    = schoolEmail;
+    if (primaryContact !== undefined) filteredData.primaryContact = primaryContact;
+
+    if (Object.keys(filteredData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one field is required to update.',
+      });
+    }
+
+    const organization = await Organization.findOneAndUpdate(
+      { orgId },
+      { $set: filteredData },
+      { new: true }
+    );
+
+    if (!organization) {
+      return res.status(404).json({ success: false, message: 'Organization not found.' });
+    }
+
+    res.json({
+      success: true,
+      message: 'School details updated.',
+      data: {
+        orgId:          organization.orgId,
+        schoolName:     organization.schoolName     || '',
+        campusAddress:  organization.campusAddress  || '',
+        schoolEmail:    organization.schoolEmail    || '',
+        primaryContact: organization.primaryContact || '',
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
