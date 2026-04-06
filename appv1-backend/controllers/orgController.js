@@ -293,7 +293,10 @@ exports.updateSchoolDetails = async (req, res) => {
     const { schoolName, campusAddress, schoolEmail, primaryContact } = req.body;
 
     const filteredData = {};
-    if (schoolName     !== undefined) filteredData.schoolName     = schoolName;
+    if (schoolName     !== undefined) {
+      filteredData.schoolName = schoolName;
+      filteredData.name       = schoolName; // ← keep org name in sync
+    }
     if (campusAddress  !== undefined) filteredData.campusAddress  = campusAddress;
     if (schoolEmail    !== undefined) filteredData.schoolEmail    = schoolEmail;
     if (primaryContact !== undefined) filteredData.primaryContact = primaryContact;
@@ -320,6 +323,7 @@ exports.updateSchoolDetails = async (req, res) => {
       message: 'School details updated.',
       data: {
         orgId:          organization.orgId,
+        name:           organization.name,           // ← also return updated name
         schoolName:     organization.schoolName     || '',
         campusAddress:  organization.campusAddress  || '',
         schoolEmail:    organization.schoolEmail    || '',
