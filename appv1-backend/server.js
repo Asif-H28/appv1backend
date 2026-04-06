@@ -102,7 +102,7 @@ app.use('/api/achievement', achievementRoutes);
 const adminNoticeRoutes = require('./routes/adminNoticeRoutes');
 app.use('/api/admin-notices', adminNoticeRoutes);
 
-
+app.use('/api/org/school', require('./routes/school.routes'));
 
 
 // 404 handler (FIXED syntax)
