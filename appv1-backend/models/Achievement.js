@@ -24,16 +24,16 @@ const achievementSchema = new mongoose.Schema({
   images:  [{ type: String, required: true }],
 
   // ── Teacher (Author) ──
-  teacherId:   { type: String, required: true },
-  teacherName: { type: String, required: true },
+  teacherId:   { type: String, default: null },   // ✅ optional — null when posted by admin
+  teacherName: { type: String, default: '' },     // ✅ optional
 
   // ── Class Info ──
-  classId:   { type: String, required: true },
-  className: { type: String, required: true },
+  classId:   { type: String, default: '' },       // ✅ optional — empty when admin posts org-wide
+  className: { type: String, default: '' },       // ✅ optional
 
   // ── Org Info ──
-  orgId:   { type: String, required: true },
-  orgName: { type: String, default: '' },    // ✅ optional now
+  orgId:   { type: String, required: true },      // ← always required
+  orgName: { type: String, default: '' },
 
   // ── Tagged Students (optional) ──
   taggedStudents: [
@@ -47,7 +47,7 @@ const achievementSchema = new mongoose.Schema({
   likes:    [likeSchema],
   comments: [commentSchema],
 
-  // ── Counts (denormalized for fast reads) ──
+  // ── Counts ──
   likeCount:    { type: Number, default: 0 },
   commentCount: { type: Number, default: 0 }
 
