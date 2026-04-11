@@ -18,16 +18,23 @@ exports.createAchievement = async (req, res) => {
     const {
       teacherId, teacherName,
       classId, className,
-      orgId, orgName,        // ← orgName still destructured but now optional
+      orgId, orgName,
       caption, images,
-      taggedStudents
+      taggedStudents,
+      isAdmin           // ✅ NEW optional field
     } = req.body;
 
-    // ✅ orgName removed from required check
-    if (!teacherId || !teacherName || !classId || !className || !orgId) {
-      return res.status(400).json({
-        error: 'teacherId, teacherName, classId, className, orgId required'
-      });
+    // ✅ If isAdmin — only orgId required. Otherwise all fields required.
+    if (isAdmin) {
+      if (!orgId) {
+        return res.status(400).json({ error: 'orgId required' });
+      }
+    } else {
+      if (!teacherId || !teacherName || !classId || !className || !orgId) {
+        return res.status(400).json({
+          error: 'teacherId, teacherName, classId, className, orgId required'
+        });
+      }
     }
 
     if (!images || images.length === 0) {
@@ -41,33 +48,37 @@ exports.createAchievement = async (req, res) => {
 
     const achievement = await Achievement.create({
       achievementId,
-      caption: caption || '',
+      caption:        caption || '',
       images,
-      teacherId, teacherName,
-      classId, className,
+      teacherId:      teacherId || null,
+      teacherName:    teacherName || '',
+      classId:        classId || '',
+      className:      className || '',
       orgId,
-      orgName: orgName || '',   // ✅ falls back to empty string if not provided
+      orgName:        orgName || '',
       taggedStudents: taggedStudents || [],
-      likes: [],
-      comments: [],
-      likeCount: 0,
-      commentCount: 0
+      likes:          [],
+      comments:       [],
+      likeCount:      0,
+      commentCount:   0
     });
 
-    // ✅ Notify all students in the org's class
-    try {
-      await notifyClass({
-        classId,
-        orgId,
-        title: `🏆 New Achievement Posted`,
-        body: `${teacherName} shared a new achievement${caption ? `: ${caption.substring(0, 50)}` : ''}`,
-        type: 'general',
-        sentBy: teacherId,
-        sentByName: teacherName,
-        data: { route: '/achievements', achievementId: achievement.achievementId }
-      });
-    } catch (e) {
-      console.log('Notify failed (non-critical):', e.message);
+    // ✅ Only notify if classId is present (teacher post), skip if admin-only post
+    if (classId) {
+      try {
+        await notifyClass({
+          classId,
+          orgId,
+          title:      `🏆 New Achievement Posted`,
+          body:       `${teacherName} shared a new achievement${caption ? `: ${caption.substring(0, 50)}` : ''}`,
+          type:       'general',
+          sentBy:     teacherId || orgId,
+          sentByName: teacherName || 'Admin',
+          data:       { route: '/achievements', achievementId: achievement.achievementId }
+        });
+      } catch (e) {
+        console.log('Notify failed (non-critical):', e.message);
+      }
     }
 
     res.status(201).json({ success: true, achievement });
