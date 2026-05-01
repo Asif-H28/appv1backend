@@ -1,11 +1,16 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host:   'smtp.gmail.com',
+  port:   587,
+  secure: false,         // STARTTLS on port 587
   auth: {
     user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASS,  // Gmail App Password only — NOT login password
+    pass: process.env.GMAIL_APP_PASS,
   },
+  tls: { rejectUnauthorized: false },
+  // Force IPv4 — Render free tier has no IPv6 outbound connectivity
+  family: 4,
 });
 
 // Verify connection on server start

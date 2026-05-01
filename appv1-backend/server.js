@@ -7,6 +7,9 @@ require('dotenv').config();
 
 const app = express();
 
+// ✅ Trust Render's reverse proxy — required for express-rate-limit to work correctly
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet());
 app.use(cors({ origin: '*' }));
