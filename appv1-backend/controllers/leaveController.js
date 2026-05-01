@@ -4,8 +4,12 @@ const Teacher       = require("../models/Teacher");
 const Student       = require("../models/Student");
 const Classroom     = require("../models/Classroom");
 const Organization  = require("../models/Organization");
+const Notification  = require("../models/Notification");
 const admin         = require("../config/firebase");
 const { notifyStudent, notifyClass } = require("../utils/sendNotification");
+
+const generateNotificationId = () =>
+  `NTF_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
 const generateLeaveId = () =>
   `LEV_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -43,25 +47,29 @@ exports.teacherApplyLeave = async (req, res) => {
       status: "pending",
     });
 
-    // ✅ NOTIFY ADMIN VIA FCM
+    // ✅ NOTIFY ADMIN VIA FCM + SAVE NOTIFICATION RECORD
     try {
       const org = await Organization.findOne({ orgId }, "fcmToken");
 
       console.log("🔍 Org FCM token:", org?.fcmToken ?? "NOT FOUND");
 
+      const notifTitle = `📋 New Leave Request`;
+      const notifBody  = `${teacher.name} has applied for ${leave.totalDays} day(s) leave`;
+      const notifData  = {
+        route:     "teacher-leave-requests",
+        leaveId:   leave.leaveId,
+        teacherId: teacherId,
+        orgId:     orgId,
+      };
+
+      let fcmSuccessCount = 0;
+      let fcmFailureCount = 0;
+
       if (org?.fcmToken && org.fcmToken.trim() !== "") {
         const result = await admin.messaging().sendEachForMulticast({
           tokens: [org.fcmToken],
-          notification: {
-            title: `📋 New Leave Request`,
-            body:  `${teacher.name} has applied for ${leave.totalDays} day(s) leave`,
-          },
-          data: {
-            route:     "teacher-leave-requests",
-            leaveId:   leave.leaveId,
-            teacherId: teacherId,
-            orgId:     orgId,
-          },
+          notification: { title: notifTitle, body: notifBody },
+          data: notifData,
           android: {
             priority: "high",
             notification: {
@@ -74,10 +82,32 @@ exports.teacherApplyLeave = async (req, res) => {
           },
         });
 
+        fcmSuccessCount = result.successCount;
+        fcmFailureCount = result.failureCount;
         console.log("✅ Admin FCM result:", JSON.stringify(result.responses));
       } else {
-        console.log("❌ Admin FCM token missing, skipping notification");
+        console.log("❌ Admin FCM token missing, skipping push");
       }
+
+      // ✅ Always save notification record to DB
+      let notificationId = generateNotificationId();
+      while (await Notification.findOne({ notificationId })) {
+        notificationId = generateNotificationId();
+      }
+      await Notification.create({
+        notificationId,
+        title:       notifTitle,
+        body:        notifBody,
+        type:        "general",
+        sentBy:      teacherId,
+        sentByName:  teacher.name,
+        targetRole:  "all",   // targeting admin (org-level)
+        orgId,
+        totalSent:   fcmSuccessCount,
+        totalFailed: fcmFailureCount,
+        data:        notifData,
+      });
+      console.log("✅ Notification record saved to DB");
     } catch (notifyError) {
       console.error("❌ Admin notification FULL ERROR:", notifyError);
     }
@@ -149,7 +179,7 @@ exports.reviewTeacherLeave = async (req, res) => {
     leave.reviewedAt = new Date();
     await leave.save();
 
-    // ✅ NOTIFY TEACHER VIA FCM
+    // ✅ NOTIFY TEACHER VIA FCM + SAVE NOTIFICATION RECORD
     try {
       const teacher = await Teacher.findOne(
         { teacherId: leave.teacherId },
@@ -158,22 +188,20 @@ exports.reviewTeacherLeave = async (req, res) => {
 
       console.log("🔍 Teacher FCM token:", teacher?.fcmToken ?? "NOT FOUND");
 
+      const notifTitle = status === "approved" ? `✅ Leave Approved` : `❌ Leave Rejected`;
+      const notifBody  = status === "approved"
+        ? `Your leave request for ${leave.totalDays} day(s) has been approved`
+        : `Your leave request was rejected. ${reviewNote || ""}`;
+      const notifData  = { route: "my-leaves", leaveId: leave.leaveId, status };
+
+      let fcmSuccessCount = 0;
+      let fcmFailureCount = 0;
+
       if (teacher?.fcmToken && teacher.fcmToken.trim() !== "") {
         const result = await admin.messaging().sendEachForMulticast({
           tokens: [teacher.fcmToken],
-          notification: {
-            title: status === "approved"
-              ? `✅ Leave Approved`
-              : `❌ Leave Rejected`,
-            body: status === "approved"
-              ? `Your leave request for ${leave.totalDays} day(s) has been approved`
-              : `Your leave request was rejected. ${reviewNote || ""}`,
-          },
-          data: {
-            route:   "my-leaves",
-            leaveId: leave.leaveId,
-            status:  status,
-          },
+          notification: { title: notifTitle, body: notifBody },
+          data: notifData,
           android: {
             priority: "high",
             notification: {
@@ -186,10 +214,32 @@ exports.reviewTeacherLeave = async (req, res) => {
           },
         });
 
+        fcmSuccessCount = result.successCount;
+        fcmFailureCount = result.failureCount;
         console.log("✅ Teacher FCM result:", JSON.stringify(result.responses));
       } else {
-        console.log("❌ Teacher FCM token missing, skipping notification");
+        console.log("❌ Teacher FCM token missing, skipping push");
       }
+
+      // ✅ Always save notification record to DB
+      let notificationId = generateNotificationId();
+      while (await Notification.findOne({ notificationId })) {
+        notificationId = generateNotificationId();
+      }
+      await Notification.create({
+        notificationId,
+        title:       notifTitle,
+        body:        notifBody,
+        type:        "general",
+        sentBy:      reviewedBy,
+        sentByName:  reviewedBy,   // admin name not available here; override if needed
+        targetRole:  "teacher",
+        orgId:       leave.orgId,
+        totalSent:   fcmSuccessCount,
+        totalFailed: fcmFailureCount,
+        data:        notifData,
+      });
+      console.log("✅ Notification record saved to DB");
     } catch (notifyError) {
       console.error("❌ Teacher notification FULL ERROR:", notifyError);
     }
