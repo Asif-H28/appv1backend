@@ -57,6 +57,7 @@ app.get('/test-db', async (req, res) => {
 
 // Auth routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth', require('./routes/authForgotPassword')); // ← forgot-password / verify-otp / reset-password
 
 app.use('/api/org', require('./routes/org'));
 
