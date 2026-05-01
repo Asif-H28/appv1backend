@@ -1,16 +1,19 @@
+const dns        = require('dns');
 const nodemailer = require('nodemailer');
+
+// Force IPv4 DNS resolution — Render free tier has no IPv6 outbound internet access.
+// smtp.gmail.com resolves to IPv6 by default on Node 18+, which causes ENETUNREACH.
+dns.setDefaultResultOrder('ipv4first');
 
 const transporter = nodemailer.createTransport({
   host:   'smtp.gmail.com',
   port:   587,
-  secure: false,         // STARTTLS on port 587
+  secure: false,   // STARTTLS on port 587
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASS,
   },
   tls: { rejectUnauthorized: false },
-  // Force IPv4 — Render free tier has no IPv6 outbound connectivity
-  family: 4,
 });
 
 // Verify connection on server start
