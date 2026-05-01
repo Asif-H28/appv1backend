@@ -25,9 +25,9 @@ router.post('/send/class', sendToClass);
 router.post('/send/student', sendToStudent);
 router.post('/send/org', sendToOrg);
 router.get('/class/:classId', getNotificationsByClass);
-router.get('/org/:orgId', getNotificationsByOrg);
+router.get('/org/:orgId/teacher-leave-requests', getTeacherLeaveNotificationsByOrg); // ← specific FIRST
+router.get('/org/:orgId', getNotificationsByOrg);                                     // ← generic AFTER
 router.get('/student/:studentId', getNotificationsByStudent);
-router.get('/org/:orgId/teacher-leave-requests', getTeacherLeaveNotificationsByOrg);
 router.put('/:notificationId/read', markAsRead);             // ← NEW
 router.put('/class/:classId/read-all', markAllAsRead);       // ← NEW
 router.get('/class/:classId/unread/:userId', getUnreadCount); // ← NEW
