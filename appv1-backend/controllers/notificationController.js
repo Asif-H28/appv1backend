@@ -144,6 +144,38 @@ exports.getTeacherLeaveNotificationsByOrg = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
+// MARK ALL TEACHER LEAVE NOTIFICATIONS AS READ — ADMIN
+// Body: { "orgId": "ORG_XXX" }
+// ─────────────────────────────────────────────
+exports.markAllLeaveNotificationsRead = async (req, res) => {
+  try {
+    const { orgId } = req.body;
+
+    if (!orgId) {
+      return res.status(400).json({ error: 'orgId required' });
+    }
+
+    // Find all leave notifications for this org not yet read by the admin (orgId)
+    const result = await Notification.updateMany(
+      {
+        orgId,
+        'data.route': 'teacher-leave-requests',
+        readBy: { $nin: [orgId] },   // not yet read by this admin
+      },
+      { $push: { readBy: orgId } }
+    );
+
+    res.json({
+      success: true,
+      message: `${result.modifiedCount} notification(s) marked as read`,
+      updated: result.modifiedCount,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────
 // MARK SINGLE NOTIFICATION AS READ
 // ─────────────────────────────────────────────
 exports.markAsRead = async (req, res) => {
