@@ -62,7 +62,7 @@ router.post('/forgot-password', /* forgotLimiter, */ async (req, res) => {
     console.log('\n\n======================================================');
     console.log('🚨 FORGOT PASSWORD ENDPOINT HIT 🚨');
     console.log('Body received:', req.body);
-    console.log('======================================================\n');
+    console.log('=====================================================---=\n');
     
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: 'Email is required' });
