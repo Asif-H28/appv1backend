@@ -125,6 +125,25 @@ exports.getNotificationsByStudent = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
+// GET TEACHER LEAVE REQUEST NOTIFICATIONS — ADMIN
+// Returns only leave-request notifications for an org
+// ─────────────────────────────────────────────
+exports.getTeacherLeaveNotificationsByOrg = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+
+    const notifications = await Notification.find({
+      orgId,
+      'data.route': 'teacher-leave-requests',
+    }).sort({ createdAt: -1 });
+
+    res.json({ success: true, count: notifications.length, notifications });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────
 // MARK SINGLE NOTIFICATION AS READ
 // ─────────────────────────────────────────────
 exports.markAsRead = async (req, res) => {

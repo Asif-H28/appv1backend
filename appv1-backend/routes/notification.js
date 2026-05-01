@@ -9,13 +9,14 @@ const {
   getNotificationsByClass,
   getNotificationsByOrg,
   getNotificationsByStudent,
+  getTeacherLeaveNotificationsByOrg,
   markAsRead,
   markAllAsRead,
   getUnreadCount,
-    clearStudentFcmToken,    // ← ADD THIS
-  clearTeacherFcmToken,    // ← ADD THIS
-  saveAdminFcmToken,       // ← ADD THIS
-  clearAdminFcmToken        // ← ADD THIS
+  clearStudentFcmToken,
+  clearTeacherFcmToken,
+  saveAdminFcmToken,
+  clearAdminFcmToken
 } = require('../controllers/notificationController');
 
 router.post('/fcm/student', saveStudentFcmToken);
@@ -26,6 +27,7 @@ router.post('/send/org', sendToOrg);
 router.get('/class/:classId', getNotificationsByClass);
 router.get('/org/:orgId', getNotificationsByOrg);
 router.get('/student/:studentId', getNotificationsByStudent);
+router.get('/org/:orgId/teacher-leave-requests', getTeacherLeaveNotificationsByOrg);
 router.put('/:notificationId/read', markAsRead);             // ← NEW
 router.put('/class/:classId/read-all', markAllAsRead);       // ← NEW
 router.get('/class/:classId/unread/:userId', getUnreadCount); // ← NEW
