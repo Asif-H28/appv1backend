@@ -1,15 +1,28 @@
-const { Resend } = require('resend');
-
-// Use the API key provided from env or fallback to the one provided
-const resend = new Resend(process.env.RESEND_API_KEY || 're_Vf6aKzKx_MXE85SthtDipachzFPC2vAaw');
+// utils/mailer.js
 
 async function sendOTPEmail(toEmail, otp) {
   try {
-    const data = await resend.emails.send({
-      from: 'AppV1 Support <onboarding@resend.dev>', // Must use onboarding email unless domain is verified
-      to: toEmail,
-      subject: 'Your Password Reset OTP',
-      html: `
+    const apiKey = process.env.BREVO_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error("BREVO_API_KEY is not defined in environment variables");
+    }
+
+    // You can use your original GMAIL_USER as the sender, provided you verified it in Brevo
+    const senderEmail = process.env.GMAIL_USER || 'asif28072001@gmail.com';
+
+    const payload = {
+      sender: {
+        name: "AppV1 Support",
+        email: senderEmail
+      },
+      to: [
+        {
+          email: toEmail
+        }
+      ],
+      subject: "Your Password Reset OTP",
+      htmlContent: `
         <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:8px;">
           <h2 style="color:#00796B;margin-bottom:8px;">Password Reset OTP</h2>
           <p style="color:#374151;">Use the OTP below to reset your password. It expires in <strong>10 minutes</strong>.</p>
@@ -22,11 +35,28 @@ async function sendOTPEmail(toEmail, otp) {
           <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">
           <p style="color:#9ca3af;font-size:12px;">AppV1 — School Management System</p>
         </div>
-      `,
+      `
+    };
+
+    // Node 18+ has built-in fetch
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': apiKey
+      },
+      body: JSON.stringify(payload)
     });
-    console.log(`[Resend] Successfully sent email to ${toEmail}. ID: ${data.id}`);
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`Brevo API Error: ${response.status} - ${errorData}`);
+    }
+
+    console.log(`[Brevo] ✅ Successfully sent email to ${toEmail}`);
   } catch (error) {
-    console.error('[Resend] ❌ Error sending email:', error.message);
+    console.error('[Brevo] ❌ Error sending email:', error.message);
     throw error;
   }
 }
