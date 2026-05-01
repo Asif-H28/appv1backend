@@ -215,6 +215,32 @@ exports.searchOrganization = async (req, res) => {
   }
 };
 
+// GET ALL ORGANIZATIONS
+exports.getAllOrganizations = async (req, res) => {
+  try {
+    const organizations = await Organization.find({}).select('-adminPassword');
+    res.json({
+      success: true,
+      count: organizations.length,
+      organizations: organizations.map(org => ({
+        orgId: org.orgId,
+        name: org.name,
+        adminEmail: org.adminEmail,
+        phone: org.phone,
+        address: org.address,
+        city: org.city,
+        state: org.state,
+        country: org.country,
+        teachers: org.teachers,
+        nonTeaching: org.nonTeaching,
+        createdAt: org.createdAt
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.getTeacherCountByOrg = async (req, res) => {
   try {
     const { orgId } = req.params;
