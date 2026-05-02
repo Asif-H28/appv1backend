@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const serverless = require('serverless-http');
 require('./config/firebase');   // ← ADD THIS at top
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -16,13 +17,26 @@ app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB Connection (FIXED - modern Mongoose)
-mongoose.connect(process.env.MONGODB_URI, {
-  serverSelectionTimeoutMS: 30000
-})
-.then(() => console.log('✅ MongoDB Connected Successfully'))
-.catch(err => {
-  console.error('❌ MongoDB Connection Error:', err.message);
+// MongoDB Connection Caching for Serverless
+let isConnected;
+const connectDB = async () => {
+  if (isConnected) return;
+  const db = await mongoose.connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 30000
+  });
+  isConnected = db.connections[0].readyState;
+  console.log('✅ MongoDB Connected Successfully');
+};
+
+// Middleware to ensure DB is connected before processing requests
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    res.status(500).json({ error: "Database connection failed" });
+  }
 });
 
 // Test routes
@@ -116,9 +130,13 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📱 Test: http://localhost:${PORT}/`);
-  console.log(`🔍 DB Test: http://localhost:${PORT}/test-db`);
-});
+if (process.env.NODE_ENV !== 'lambda') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📱 Test: http://localhost:${PORT}/`);
+    console.log(`🔍 DB Test: http://localhost:${PORT}/test-db`);
+  });
+}
+
+module.exports.handler = serverless(app);
