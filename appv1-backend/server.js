@@ -107,6 +107,8 @@ const adminNoticeRoutes = require('./routes/adminNoticeRoutes');
 app.use('/api/admin-notices', adminNoticeRoutes);
 
 app.use('/api/org/school', require('./routes/school.routes'));
+app.use('/api/comprehensive-assessment', require('./routes/comprehensiveAssessmentRoutes'));
+app.use('/api/comprehensive-result', require('./routes/comprehensiveResultRoutes'));
 
 
 // 404 handler (FIXED syntax)
