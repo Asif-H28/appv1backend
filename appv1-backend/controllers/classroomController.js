@@ -83,6 +83,17 @@ exports.getClassroomsByOrg = async (req, res) => {
   }
 };
 
+// GET CLASSROOM LIST (ID AND NAME ONLY) BY ORG
+exports.getClassroomList = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    const classrooms = await Classroom.find({ orgId }).select('classId className -_id');
+    res.json({ success: true, count: classrooms.length, classrooms });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // UPDATE CLASSROOM NAME
 exports.updateClassroom = async (req, res) => {
   try {

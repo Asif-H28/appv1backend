@@ -15,12 +15,14 @@ const {
   updateLessonStatus,
   addStudentToClassroom,
   removeStudentFromClassroom,
-  deleteClassroom
+  deleteClassroom,
+  getClassroomList
 } = require('../controllers/classroomController');
 
 router.post('/create', createClassroom);
 router.get('/teacher/:teacherId', getClassroomsByTeacher);
 router.get('/org/:orgId', getClassroomsByOrg);
+router.get('/list/:orgId', getClassroomList);
 router.get('/:classId', getClassroom);
 router.put('/:classId', updateClassroom);
 router.post('/:classId/subjects', addSubject);
