@@ -49,6 +49,26 @@ exports.getAssessments = async (req, res) => {
   }
 };
 
+// Get a minimized list of assessments for a specific class (title, createdAt, teacherName)
+exports.getAssessmentsListByClass = async (req, res) => {
+  try {
+    const { classId } = req.params;
+
+    const assessments = await ComprehensiveAssessment.find({ classId })
+      .select('assessmentId title createdAt teacherName -_id')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: assessments.length,
+      assessments
+    });
+  } catch (error) {
+    console.error('Error fetching assessments list:', error);
+    res.status(500).json({ error: 'Server error fetching assessments list' });
+  }
+};
+
 // Get a single assessment by assessmentId
 exports.getAssessmentById = async (req, res) => {
   try {

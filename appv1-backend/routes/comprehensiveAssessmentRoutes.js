@@ -8,6 +8,9 @@ router.post('/create', assessmentController.createAssessment);
 // Route to get all assessments for a class in an org
 router.get('/list', assessmentController.getAssessments);
 
+// Route to get a minimized list of assessments for a specific class
+router.get('/class/:classId', assessmentController.getAssessmentsListByClass);
+
 // Route to get a single assessment by assessmentId
 router.get('/details/:assessmentId', assessmentController.getAssessmentById);
 
