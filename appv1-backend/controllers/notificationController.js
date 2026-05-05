@@ -212,6 +212,54 @@ exports.markAllLeaveNotificationsRead = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
+// MARK ALL STUDENT LEAVE REQUESTS AS READ — TEACHER
+// Body: { "teacherId": "TCH_XXX" }
+// ─────────────────────────────────────────────
+exports.markAllStudentLeavesRead = async (req, res) => {
+  try {
+    const { teacherId } = req.body;
+    if (!teacherId) return res.status(400).json({ error: 'teacherId required' });
+
+    const result = await Notification.updateMany(
+      {
+        'data.teacherId': teacherId,
+        'data.route': 'leave-requests',
+        readBy: { $nin: [teacherId] }
+      },
+      { $push: { readBy: teacherId } }
+    );
+
+    res.json({ success: true, updated: result.modifiedCount });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────
+// MARK ALL ADMIN LEAVE REVIEWS AS READ — TEACHER
+// Body: { "teacherId": "TCH_XXX" }
+// ─────────────────────────────────────────────
+exports.markAllAdminReviewsRead = async (req, res) => {
+  try {
+    const { teacherId } = req.body;
+    if (!teacherId) return res.status(400).json({ error: 'teacherId required' });
+
+    const result = await Notification.updateMany(
+      {
+        'data.teacherId': teacherId,
+        'data.route': 'my-leaves',
+        readBy: { $nin: [teacherId] }
+      },
+      { $push: { readBy: teacherId } }
+    );
+
+    res.json({ success: true, updated: result.modifiedCount });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────
 // MARK SINGLE NOTIFICATION AS READ
 // ─────────────────────────────────────────────
 exports.markAsRead = async (req, res) => {

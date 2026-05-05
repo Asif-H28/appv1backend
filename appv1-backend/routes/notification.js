@@ -12,7 +12,10 @@ const {
   getTeacherLeaveNotificationsByOrg,
   getStudentLeavesNotificationsByTeacher,
   getAdminLeaveReviewNotificationsByTeacher,
+  getAdminLeaveReviewNotificationsByTeacher,
   markAllLeaveNotificationsRead,
+  markAllStudentLeavesRead,
+  markAllAdminReviewsRead,
   markAsRead,
   markAllAsRead,
   getUnreadCount,
@@ -32,6 +35,8 @@ router.get('/org/:orgId/teacher-leave-requests', getTeacherLeaveNotificationsByO
 router.get('/teacher/:teacherId/student-leave-requests', getStudentLeavesNotificationsByTeacher);
 router.get('/teacher/:teacherId/admin-leave-reviews', getAdminLeaveReviewNotificationsByTeacher);
 router.put('/org/teacher-leave-requests/mark-all-read', markAllLeaveNotificationsRead); // ← specific FIRST
+router.put('/teacher/student-leave-requests/mark-all-read', markAllStudentLeavesRead);
+router.put('/teacher/admin-leave-reviews/mark-all-read', markAllAdminReviewsRead);
 router.get('/org/:orgId', getNotificationsByOrg);                                     // ← generic AFTER
 router.get('/student/:studentId', getNotificationsByStudent);
 router.put('/:notificationId/read', markAsRead);             // ← NEW
