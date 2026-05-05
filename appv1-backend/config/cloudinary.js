@@ -63,11 +63,13 @@ const uploadAny = multer({
 const noticeStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => {
+    const isImage = file.mimetype.startsWith('image/');
     const isPdf = file.mimetype === 'application/pdf';
+    
     return {
-      folder: isPdf ? 'appv1/notices/pdfs' : 'appv1/notices/images',
-      allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
-      resource_type: isPdf ? 'raw' : 'image'
+      folder: isImage ? 'appv1/notices/images' : (isPdf ? 'appv1/notices/pdfs' : 'appv1/notices/docs'),
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx'],
+      resource_type: isImage ? 'image' : 'raw'
     };
   }
 });
@@ -77,16 +79,16 @@ const uploadNoticeFiles = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB per file
 });
 
-// ADD at bottom of config/cloudinary.js
-
 const notesStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => {
+    const isImage = file.mimetype.startsWith('image/');
     const isPdf = file.mimetype === 'application/pdf';
+    
     return {
-      folder: isPdf ? 'appv1/notes/pdfs' : 'appv1/notes/images',
-      allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
-      resource_type: isPdf ? 'raw' : 'image'
+      folder: isImage ? 'appv1/notes/images' : (isPdf ? 'appv1/notes/pdfs' : 'appv1/notes/docs'),
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx'],
+      resource_type: isImage ? 'image' : 'raw'
     };
   }
 });

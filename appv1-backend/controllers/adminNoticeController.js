@@ -1,6 +1,8 @@
 const AdminNotice  = require('../models/AdminNotice');
 const Classroom    = require('../models/Classroom');
 const Teacher      = require('../models/Teacher');
+const Student      = require('../models/Student');
+const Notification = require('../models/Notification');
 const { cloudinary } = require('../config/cloudinary');
 const admin          = require('../config/firebase');
 
@@ -83,23 +85,34 @@ exports.createAdminNotice = async (req, res) => {
       }
     }
 
-    // Parse targetClassIds if sent as JSON string (multipart/form-data)
-    const parsedClassIds =
-      audience === 'teachers_and_students' && targetScope === 'selected_classes'
-        ? typeof targetClassIds === 'string'
-          ? JSON.parse(targetClassIds)
-          : targetClassIds
-        : [];
+    // Parse targetClassIds safely if sent as JSON string (common in multipart/form-data)
+    let parsedClassIds = [];
+    if (audience === 'teachers_and_students' && targetScope === 'selected_classes') {
+      if (targetClassIds) {
+        if (typeof targetClassIds === 'string') {
+          try {
+            parsedClassIds = JSON.parse(targetClassIds);
+          } catch (e) {
+            // If it's not JSON but a single string, wrap it in array
+            parsedClassIds = [targetClassIds];
+          }
+        } else if (Array.isArray(targetClassIds)) {
+          parsedClassIds = targetClassIds;
+        }
+      }
+    }
 
     // Handle file attachments
     const attachments = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
         const isPdf = file.mimetype === 'application/pdf';
+        const isImage = file.mimetype.startsWith('image/');
+        
         attachments.push({
           url:      file.path,
           publicId: file.filename,
-          type:     isPdf ? 'pdf' : 'image',
+          type:     isPdf ? 'pdf' : (isImage ? 'image' : 'pdf'), // Default non-images to 'pdf' category for UI
         });
       }
     }
@@ -153,7 +166,6 @@ exports.createAdminNotice = async (req, res) => {
         }
 
         // Get all student FCM tokens for those classes
-        const Student = require('../models/Student');
         const students = await Student.find(
           { classId: { $in: classIds }, joinStatus: 'approved' },
           'fcmToken'
@@ -167,7 +179,6 @@ exports.createAdminNotice = async (req, res) => {
       // ─────────────────────────────────────────
       // ✅ SAVE NOTIFICATION RECORD TO DB
       // ─────────────────────────────────────────
-      const Notification = require('../models/Notification');
       let notificationId = `NTF_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
       while (await Notification.findOne({ notificationId })) {
         notificationId = `NTF_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -196,6 +207,7 @@ exports.createAdminNotice = async (req, res) => {
 
     res.status(201).json({ success: true, notice });
   } catch (error) {
+    console.error('❌ createAdminNotice Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -211,6 +223,7 @@ exports.getAdminNoticesByOrg = async (req, res) => {
     const notices = await AdminNotice.find({ orgId }).sort({ createdAt: -1 });
     res.json({ success: true, count: notices.length, notices });
   } catch (error) {
+    console.error('❌ getAdminNoticesByOrg Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -231,6 +244,7 @@ exports.getAdminNoticesForTeacher = async (req, res) => {
 
     res.json({ success: true, count: notices.length, notices });
   } catch (error) {
+    console.error('❌ getAdminNoticesForTeacher Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -257,6 +271,7 @@ exports.getAdminNoticesForStudent = async (req, res) => {
 
     res.json({ success: true, count: notices.length, notices });
   } catch (error) {
+    console.error('❌ getAdminNoticesForStudent Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -272,6 +287,7 @@ exports.getAdminNotice = async (req, res) => {
     if (!notice) return res.status(404).json({ error: 'Notice not found' });
     res.json({ success: true, notice });
   } catch (error) {
+    console.error('❌ getAdminNotice Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -294,19 +310,27 @@ exports.updateAdminNotice = async (req, res) => {
     if (targetScope) notice.targetScope = targetScope;
 
     if (targetClassIds) {
-      notice.targetClassIds = typeof targetClassIds === 'string'
-        ? JSON.parse(targetClassIds)
-        : targetClassIds;
+      if (typeof targetClassIds === 'string') {
+        try {
+          notice.targetClassIds = JSON.parse(targetClassIds);
+        } catch (e) {
+          notice.targetClassIds = [targetClassIds];
+        }
+      } else if (Array.isArray(targetClassIds)) {
+        notice.targetClassIds = targetClassIds;
+      }
     }
 
     // Append new files
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
         const isPdf = file.mimetype === 'application/pdf';
+        const isImage = file.mimetype.startsWith('image/');
+
         notice.attachments.push({
           url:      file.path,
           publicId: file.filename,
-          type:     isPdf ? 'pdf' : 'image',
+          type:     isPdf ? 'pdf' : (isImage ? 'image' : 'pdf'),
         });
       }
     }
@@ -314,6 +338,7 @@ exports.updateAdminNotice = async (req, res) => {
     await notice.save();
     res.json({ success: true, notice });
   } catch (error) {
+    console.error('❌ updateAdminNotice Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -392,6 +417,7 @@ exports.deleteAllAdminNotices = async (req, res) => {
       deleted: result.deletedCount
     });
   } catch (error) {
+    console.error('❌ deleteAllAdminNotices Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
