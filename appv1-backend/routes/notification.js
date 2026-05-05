@@ -12,7 +12,6 @@ const {
   getTeacherLeaveNotificationsByOrg,
   getStudentLeavesNotificationsByTeacher,
   getAdminLeaveReviewNotificationsByTeacher,
-  getAdminLeaveReviewNotificationsByTeacher,
   markAllLeaveNotificationsRead,
   markAllStudentLeavesRead,
   markAllAdminReviewsRead,
