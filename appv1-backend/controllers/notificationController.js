@@ -144,6 +144,42 @@ exports.getTeacherLeaveNotificationsByOrg = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
+// GET STUDENT LEAVES NOTIFICATIONS — TEACHER
+// ─────────────────────────────────────────────
+exports.getStudentLeavesNotificationsByTeacher = async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    const notifications = await Notification.find({
+      'data.route': 'leave-requests',
+      'data.teacherId': teacherId,
+    }).sort({ createdAt: -1 });
+
+    res.json({ success: true, count: notifications.length, notifications });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────
+// GET ADMIN APPROVED/REJECTED NOTIFICATIONS — TEACHER
+// ─────────────────────────────────────────────
+exports.getAdminLeaveReviewNotificationsByTeacher = async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    const notifications = await Notification.find({
+      'data.route': 'my-leaves',
+      'data.teacherId': teacherId,
+    }).sort({ createdAt: -1 });
+
+    res.json({ success: true, count: notifications.length, notifications });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────
 // MARK ALL TEACHER LEAVE NOTIFICATIONS AS READ — ADMIN
 // Body: { "orgId": "ORG_XXX" }
 // ─────────────────────────────────────────────

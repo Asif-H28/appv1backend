@@ -192,7 +192,7 @@ exports.reviewTeacherLeave = async (req, res) => {
       const notifBody  = status === "approved"
         ? `Your leave request for ${leave.totalDays} day(s) has been approved`
         : `Your leave request was rejected. ${reviewNote || ""}`;
-      const notifData  = { route: "my-leaves", leaveId: leave.leaveId, status };
+      const notifData  = { route: "my-leaves", leaveId: leave.leaveId, status, teacherId: leave.teacherId };
 
       let fcmSuccessCount = 0;
       let fcmFailureCount = 0;
@@ -352,6 +352,32 @@ exports.studentApplyLeave = async (req, res) => {
       } else {
         console.log("❌ Class Teacher FCM token missing, skipping notification");
       }
+
+      // ✅ Always save notification record to DB
+      let notificationId = generateNotificationId();
+      while (await Notification.findOne({ notificationId })) {
+        notificationId = generateNotificationId();
+      }
+      await Notification.create({
+        notificationId,
+        title:       `📋 New Leave Request`,
+        body:        `${student.name} has applied for ${leave.totalDays} day(s) leave`,
+        type:        "general",
+        sentBy:      studentId,
+        sentByName:  student.name,
+        targetRole:  "teacher",
+        classId:     student.classId,
+        orgId:       student.orgId,
+        data:        {
+          route:     "leave-requests",
+          leaveId:   leave.leaveId,
+          studentId: student.studentId,
+          classId:   student.classId,
+          teacherId: classroom.teacherId // to easily query for this teacher later
+        },
+      });
+      console.log("✅ Student leave notification record saved to DB");
+
     } catch (notifyError) {
       console.error("❌ Class Teacher notification FULL ERROR:", notifyError);
     }
