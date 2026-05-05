@@ -163,6 +163,33 @@ exports.createAdminNotice = async (req, res) => {
       }
 
       console.log(`✅ Admin notice notifications sent — audience: ${audience}`);
+
+      // ─────────────────────────────────────────
+      // ✅ SAVE NOTIFICATION RECORD TO DB
+      // ─────────────────────────────────────────
+      const Notification = require('../models/Notification');
+      let notificationId = `NTF_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      while (await Notification.findOne({ notificationId })) {
+        notificationId = `NTF_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      }
+
+      await Notification.create({
+        notificationId,
+        title:      fcmTitle,
+        body:       description,
+        type:       'notice',
+        sentBy:     createdBy,
+        sentByName: 'Admin',
+        targetRole: audience === 'teachers_only' ? 'teacher' : 'all',
+        orgId,
+        data:       {
+          ...fcmData,
+          targetScope:    audience === 'teachers_and_students' ? targetScope : null,
+          targetClassIds: audience === 'teachers_and_students' ? parsedClassIds : []
+        },
+      });
+      console.log('✅ Admin notice notification record saved to DB');
+
     } catch (notifyError) {
       console.error('❌ Admin notice FCM error (non-critical):', notifyError);
     }

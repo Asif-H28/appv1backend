@@ -117,7 +117,30 @@ exports.getNotificationsByOrg = async (req, res) => {
 exports.getNotificationsByStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
-    const notifications = await Notification.find({ studentId }).sort({ createdAt: -1 });
+
+    // 1. Get student's orgId and classId
+    const student = await Student.findOne({ studentId }, 'orgId classId');
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    // 2. Find personal notifications + relevant admin notices
+    const notifications = await Notification.find({
+      $or: [
+        // A. Personal notifications (leave reviews, etc.)
+        { studentId: studentId },
+        
+        // B. Admin Notices for this org
+        {
+          orgId: student.orgId,
+          'data.route': 'admin-notices',
+          targetRole: 'all',
+          $or: [
+            { 'data.targetScope': 'all_classes' },
+            { 'data.targetScope': 'selected_classes', 'data.targetClassIds': student.classId }
+          ]
+        }
+      ]
+    }).sort({ createdAt: -1 });
+
     res.json({ success: true, count: notifications.length, notifications });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -162,15 +185,31 @@ exports.getStudentLeavesNotificationsByTeacher = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
-// GET ADMIN APPROVED/REJECTED NOTIFICATIONS — TEACHER
+// GET ADMIN REVIEWS + ADMIN NOTICES — TEACHER
 // ─────────────────────────────────────────────
 exports.getAdminLeaveReviewNotificationsByTeacher = async (req, res) => {
   try {
     const { teacherId } = req.params;
 
+    // 1. Get teacher's orgId
+    const teacher = await Teacher.findOne({ teacherId }, 'orgId');
+    if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
+
+    // 2. Find both leave reviews and admin notices
     const notifications = await Notification.find({
-      'data.route': 'my-leaves',
-      'data.teacherId': teacherId,
+      $or: [
+        // A. Personal Leave Reviews
+        {
+          'data.route': 'my-leaves',
+          'data.teacherId': teacherId
+        },
+        // B. Admin Notices for this org
+        {
+          orgId: teacher.orgId,
+          'data.route': 'admin-notices',
+          targetRole: { $in: ['teacher', 'all'] }
+        }
+      ]
     }).sort({ createdAt: -1 });
 
     res.json({ success: true, count: notifications.length, notifications });
@@ -236,7 +275,7 @@ exports.markAllStudentLeavesRead = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
-// MARK ALL ADMIN LEAVE REVIEWS AS READ — TEACHER
+// MARK ALL ADMIN LEAVE REVIEWS + NOTICES AS READ — TEACHER
 // Body: { "teacherId": "TCH_XXX" }
 // ─────────────────────────────────────────────
 exports.markAllAdminReviewsRead = async (req, res) => {
@@ -244,11 +283,25 @@ exports.markAllAdminReviewsRead = async (req, res) => {
     const { teacherId } = req.body;
     if (!teacherId) return res.status(400).json({ error: 'teacherId required' });
 
+    // 1. Get teacher's orgId
+    const teacher = await Teacher.findOne({ teacherId }, 'orgId');
+    if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
+
+    // 2. Mark both personal reviews and org notices as read
     const result = await Notification.updateMany(
       {
-        'data.teacherId': teacherId,
-        'data.route': 'my-leaves',
-        readBy: { $nin: [teacherId] }
+        readBy: { $nin: [teacherId] },
+        $or: [
+          {
+            'data.route': 'my-leaves',
+            'data.teacherId': teacherId
+          },
+          {
+            orgId: teacher.orgId,
+            'data.route': 'admin-notices',
+            targetRole: { $in: ['teacher', 'all'] }
+          }
+        ]
       },
       { $push: { readBy: teacherId } }
     );
