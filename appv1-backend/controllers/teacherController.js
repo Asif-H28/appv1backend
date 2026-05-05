@@ -80,21 +80,32 @@ exports.loginTeacher = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign(
-      { teacherId: teacher.teacherId, orgId: teacher.orgId, email, role: 'teacher' },
+    const accessToken = jwt.sign(
+      { userId: teacher.teacherId, role: 'teacher' },
       process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: teacher.teacherId },
+      process.env.REFRESH_SECRET,
       { expiresIn: '30d' }
     );
 
+    // Save refresh token to DB
+    teacher.refreshToken = refreshToken;
+    await teacher.save();
+
     res.json({
       success: true,
-      token,
+      accessToken,
+      refreshToken,
       teacher: {
         teacherId: teacher.teacherId,
         orgId: teacher.orgId,
         name: teacher.name,
         email: teacher.email,
-        verified: teacher.verified   // Show verified status on login
+        verified: teacher.verified
       }
     });
   } catch (error) {
@@ -342,6 +353,47 @@ exports.rejectJoinRequest = async (req, res) => {
       teacherId: request.teacherId,
       status: 'rejected'
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+// REFRESH TOKEN
+exports.refreshTeacherToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({ error: 'Refresh token required' });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
+    const teacher = await Teacher.findOne({ teacherId: decoded.userId });
+
+    if (!teacher || teacher.refreshToken !== refreshToken) {
+      return res.status(403).json({ error: 'Invalid refresh token' });
+    }
+
+    const accessToken = jwt.sign(
+      { userId: teacher.teacherId, role: 'teacher' },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    res.json({ success: true, accessToken });
+  } catch (error) {
+    res.status(401).json({ error: 'Token refresh failed' });
+  }
+};
+
+// LOGOUT TEACHER
+exports.logoutTeacher = async (req, res) => {
+  try {
+    const teacher = await Teacher.findOneAndUpdate(
+      { teacherId: req.user.userId },
+      { $set: { refreshToken: null } }
+    );
+
+    res.json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

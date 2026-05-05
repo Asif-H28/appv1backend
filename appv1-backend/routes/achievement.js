@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const {
   createAchievement,
   getAchievementsByOrg,
@@ -11,6 +12,8 @@ const {
   updateAchievement,
   deleteAchievement
 } = require('../controllers/achievementController');
+
+router.use(protect);
 
 router.post('/create',                                createAchievement);
 router.get('/org/:orgId',                             getAchievementsByOrg);

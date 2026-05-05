@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const resultController = require('../controllers/comprehensiveResultController');
+
+router.use(protect);
 
 // Route to create or update a student's result for an assessment
 router.post('/assessment/:assessmentId/result', resultController.createOrUpdateResult);

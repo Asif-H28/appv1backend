@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const { uploadImage, uploadPdf, uploadAny } = require('../config/cloudinary');
 const { 
   uploadImage: uploadImageCtrl,
@@ -7,6 +8,8 @@ const {
   uploadAny: uploadAnyCtrl,
   deleteFile
 } = require('../controllers/uploadController');
+
+router.use(protect);
 
 router.post('/image', uploadImage.single('file'), uploadImageCtrl);
 router.post('/pdf', uploadPdf.single('file'), uploadPdfCtrl);

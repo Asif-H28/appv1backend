@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const {
   getPendingRequests,
   getRequestsByClass,
@@ -8,6 +9,8 @@ const {
   getRequestStatus,
   removeStudent           // ← ADD THIS
 } = require('../controllers/classJoinController');
+
+router.use(protect);
 
 router.get('/teacher/:teacherId/pending', getPendingRequests);
 router.get('/class/:classId', getRequestsByClass);

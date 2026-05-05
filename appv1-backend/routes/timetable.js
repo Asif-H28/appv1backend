@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const {
   createTimetable,
   getTimetableByClass,
@@ -11,6 +12,8 @@ const {
   removeSlot,
   deleteTimetable
 } = require('../controllers/timetableController');
+
+router.use(protect);
 
 router.post('/create', createTimetable);
 router.get('/class/:classId', getTimetableByClass);

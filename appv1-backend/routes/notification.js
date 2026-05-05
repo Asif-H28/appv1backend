@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const {
   saveStudentFcmToken,
   saveTeacherFcmToken,
@@ -19,6 +20,8 @@ const {
   saveAdminFcmToken,
   clearAdminFcmToken
 } = require('../controllers/notificationController');
+
+router.use(protect);
 
 router.post('/fcm/student', saveStudentFcmToken);
 router.post('/fcm/teacher', saveTeacherFcmToken);

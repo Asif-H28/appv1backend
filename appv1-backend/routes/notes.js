@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const { uploadNotesFiles } = require('../config/cloudinary');
 const {
   createNote,
@@ -11,6 +12,8 @@ const {
   deleteNote,
   deleteNotesByClass
 } = require('../controllers/notesController');
+
+router.use(protect);
 
 router.post('/create', uploadNotesFiles.array('files', 10), createNote);  // max 10 files
 router.get('/class/:classId', getNotesByClass);

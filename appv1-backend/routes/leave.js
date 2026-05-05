@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-
+const { protect } = require('../middleware/auth');
 const {
   teacherApplyLeave,
   getTeacherLeaves,
@@ -14,6 +14,8 @@ const {
   reviewStudentLeave,
   deleteStudentLeave
 } = require('../controllers/leaveController');
+
+router.use(protect);
 
 // ── TEACHER LEAVE ROUTES ──
 router.post('/teacher/apply',                     teacherApplyLeave);

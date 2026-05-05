@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const assessmentController = require('../controllers/comprehensiveAssessmentController');
+
+router.use(protect);
 
 // Route to create a new assessment
 router.post('/create', assessmentController.createAssessment);

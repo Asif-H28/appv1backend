@@ -1,6 +1,9 @@
 const express = require('express');
 const router  = express.Router();
+const { protect } = require('../middleware/auth');
 const C       = require('../controllers/school.controller');
+
+router.use(protect);
 
 // Basic Details
 router.get ('/basic',          C.getBasicDetails);

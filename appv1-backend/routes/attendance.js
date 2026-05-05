@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const {
   createAttendance,
   getAttendance,
@@ -13,6 +14,9 @@ const {
   deleteAttendanceByClass,
   getAttendanceByWeek
 } = require('../controllers/attendanceController');
+
+// All routes are protected
+router.use(protect);
 
 router.post('/create', createAttendance);
 router.get('/class/:classId', getAttendanceByClass);

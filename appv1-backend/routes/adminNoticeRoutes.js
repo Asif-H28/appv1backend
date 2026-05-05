@@ -1,5 +1,6 @@
 const express = require('express');
 const router  = express.Router();
+const { protect } = require('../middleware/auth');
 const { uploadNoticeFiles } = require('../config/cloudinary');
 const {
   createAdminNotice,
@@ -12,6 +13,8 @@ const {
   deleteAdminNotice,
   deleteAllAdminNotices
 } = require('../controllers/adminNoticeController');
+
+router.use(protect);
 
 // ── ADMIN ────────────────────────────────────────────────
 router.post('/create',                uploadNoticeFiles.array('files', 5), createAdminNotice);

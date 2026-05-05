@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const {
   createClassroom,
   getClassroom,
@@ -18,6 +19,9 @@ const {
   deleteClassroom,
   getClassroomList
 } = require('../controllers/classroomController');
+
+// All routes are protected
+router.use(protect);
 
 router.post('/create', createClassroom);
 router.get('/teacher/:teacherId', getClassroomsByTeacher);

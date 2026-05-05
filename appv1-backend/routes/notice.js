@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const { uploadNoticeFiles } = require('../config/cloudinary');
 const {
   createNotice,
@@ -10,6 +11,8 @@ const {
   deleteNotice,
   purgeExpiredNotices
 } = require('../controllers/noticeController');
+
+router.use(protect);
 
 router.post('/create', uploadNoticeFiles.array('files', 5), createNotice);         // max 5 files
 router.get('/classroom/:classId', getNoticesByClassroom);                          // auto-purge + get
