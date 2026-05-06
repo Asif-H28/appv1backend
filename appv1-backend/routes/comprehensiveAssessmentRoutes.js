@@ -20,4 +20,7 @@ router.put('/update/:assessmentId', assessmentController.updateAssessment);
 // Route to delete an assessment
 router.delete('/delete/:assessmentId', assessmentController.deleteAssessment);
 
+// Route to export CA template to Excel
+router.get('/export/:assessmentId', assessmentController.exportTemplate);
+
 module.exports = router;
