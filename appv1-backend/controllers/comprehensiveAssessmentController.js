@@ -178,6 +178,9 @@ exports.exportTemplate = async (req, res) => {
           width: 25
         });
       }
+      // Added Grade and Remarks for each subject
+      columns.push({ header: `${subject.subjectName} Grade`, key: `${subject.subjectName}_grade`, width: 15 });
+      columns.push({ header: `${subject.subjectName} Remarks`, key: `${subject.subjectName}_remarks`, width: 20 });
     });
 
     // Add Co-Scholastic Activities
@@ -187,7 +190,14 @@ exports.exportTemplate = async (req, res) => {
         key: activity.activityName,
         width: 20
       });
+      // Added Grade and Remarks for each activity
+      columns.push({ header: `${activity.activityName} Grade`, key: `${activity.activityName}_grade`, width: 15 });
+      columns.push({ header: `${activity.activityName} Remarks`, key: `${activity.activityName}_remarks`, width: 20 });
     });
+
+    // Add Overall Grade and Remarks at the end
+    columns.push({ header: 'Overall Grade', key: 'overallGrade', width: 15 });
+    columns.push({ header: 'Overall Remarks', key: 'overallRemarks', width: 25 });
 
     worksheet.columns = columns;
 

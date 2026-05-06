@@ -6,13 +6,13 @@ const scholasticResultSchema = new mongoose.Schema({
   externalMarksScored: { type: Number, required: true, default: 0 },
   totalMarksScored: { type: Number, required: true },
   status: { type: String, enum: ['pass', 'fail'], required: true },
-  grade: { type: String, required: true },
+  grade: { type: String, default: null },
   remarks: { type: String, default: null, trim: true }
 }, { _id: false });
 
 const coScholasticResultSchema = new mongoose.Schema({
   activityName: { type: String, required: true, trim: true },
-  grade: { type: String, required: true },
+  grade: { type: String, default: null },
   remarks: { type: String, default: null, trim: true }
 }, { _id: false });
 
@@ -35,7 +35,8 @@ const comprehensiveResultSchema = new mongoose.Schema({
   overallTotalMaximum: { type: Number, required: true },
   percentage: { type: Number, required: true },
   overallStatus: { type: String, enum: ['pass', 'fail'], required: true },
-  overallGrade: { type: String, required: true },
+  overallGrade: { type: String, default: null },
+  overallRemarks: { type: String, default: null, trim: true },
   
   publishedBy: { type: String, required: true, trim: true },
   publishedAt: { type: Date, default: Date.now }
