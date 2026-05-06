@@ -95,6 +95,10 @@ exports.sendToOrg = async (req, res) => {
 exports.getNotificationsByClass = async (req, res) => {
   try {
     const { classId } = req.params;
+    
+    const __clsCheck = await require('../models/Classroom').findOne({ classId, isActive: true });
+    if (!__clsCheck) return res.status(403).json({ error: 'Classroom is inactive or not found' });
+
     const notifications = await Notification.find({ classId }).sort({ createdAt: -1 });
     res.json({ success: true, count: notifications.length, notifications });
   } catch (error) {

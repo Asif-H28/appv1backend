@@ -135,7 +135,23 @@ exports.getResultsByStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
     const results = await ComprehensiveResult.find({ studentId }).sort({ createdAt: -1 });
-    res.status(200).json(results);
+
+    // Filter out results from archived classes
+    const activeResults = [];
+    const classStatusCache = {};
+    const Classroom = require('../models/Classroom');
+    
+    for (const r of results) {
+      if (classStatusCache[r.classId] === undefined) {
+        const cls = await Classroom.findOne({ classId: r.classId, isActive: true });
+        classStatusCache[r.classId] = !!cls;
+      }
+      if (classStatusCache[r.classId]) {
+        activeResults.push(r);
+      }
+    }
+    
+    res.status(200).json(activeResults);
   } catch (error) {
     console.error('Error fetching student results:', error);
     res.status(500).json({ error: 'Server error fetching student results' });

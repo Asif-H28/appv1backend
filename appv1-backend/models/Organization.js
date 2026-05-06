@@ -20,6 +20,10 @@ const organizationSchema = new mongoose.Schema(
     campusAddress:  { type: String, default: '' },
     schoolEmail:    { type: String, default: '' },
     primaryContact: { type: String, default: '' },
+
+    // ── Academic Year Details ───────────
+    currentAcademicYear: { type: String, default: null },
+    academicYearStartDate: { type: Date, default: null },
   },
   { timestamps: true }
 );

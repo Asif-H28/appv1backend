@@ -44,6 +44,10 @@ exports.getAssessments = async (req, res) => {
       return res.status(400).json({ error: 'orgId and classId are required' });
     }
 
+    
+    const __clsCheck = await require('../models/Classroom').findOne({ classId, isActive: true });
+    if (!__clsCheck) return res.status(403).json({ error: 'Classroom is inactive or not found' });
+
     const assessments = await ComprehensiveAssessment.find({ orgId, classId }).sort({ createdAt: -1 });
     res.status(200).json(assessments);
   } catch (error) {
@@ -56,6 +60,10 @@ exports.getAssessments = async (req, res) => {
 exports.getAssessmentsListByClass = async (req, res) => {
   try {
     const { classId } = req.params;
+
+    
+    const __clsCheck = await require('../models/Classroom').findOne({ classId, isActive: true });
+    if (!__clsCheck) return res.status(403).json({ error: 'Classroom is inactive or not found' });
 
     const assessments = await ComprehensiveAssessment.find({ classId })
       .select('assessmentId title createdAt teacherName -_id')
@@ -142,7 +150,7 @@ exports.exportTemplate = async (req, res) => {
     }
 
     // 2. Fetch Classroom to get student IDs
-    const classroom = await Classroom.findOne({ classId: assessment.classId });
+    const classroom = await Classroom.findOne({ classId: assessment.classId, isActive: true });
     if (!classroom) {
       return res.status(404).json({ error: 'Classroom not found' });
     }

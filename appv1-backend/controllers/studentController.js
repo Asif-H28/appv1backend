@@ -182,7 +182,7 @@ exports.sendJoinRequest = async (req, res) => {
       return res.status(400).json({ error: 'You are already part of a class' });
     }
 
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     // Ensure class belongs to student's tempOrg
@@ -293,7 +293,7 @@ exports.getStudentsByClass = async (req, res) => {
   try {
     const { classId } = req.params;
 
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     const students = await Student.find(

@@ -18,7 +18,7 @@ exports.createClassroom = async (req, res) => {
     if (!teacher.verified) return res.status(403).json({ error: 'Teacher not verified' });
 
     let classId = generateClassId();
-    while (await Classroom.findOne({ classId })) {
+    while (await Classroom.findOne({ classId, isActive: true })) {
       classId = generateClassId();
     }
 
@@ -52,7 +52,7 @@ exports.createClassroom = async (req, res) => {
 exports.getClassroom = async (req, res) => {
   try {
     const { classId } = req.params;
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     res.json({ success: true, classroom });
@@ -65,7 +65,7 @@ exports.getClassroom = async (req, res) => {
 exports.getClassroomsByTeacher = async (req, res) => {
   try {
     const { teacherId } = req.params;
-    const classrooms = await Classroom.find({ teacherId });
+    const classrooms = await Classroom.find({ teacherId, isActive: true });
     res.json({ success: true, count: classrooms.length, classrooms });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -76,7 +76,7 @@ exports.getClassroomsByTeacher = async (req, res) => {
 exports.getClassroomsByOrg = async (req, res) => {
   try {
     const { orgId } = req.params;
-    const classrooms = await Classroom.find({ orgId });
+    const classrooms = await Classroom.find({ orgId, isActive: true });
     res.json({ success: true, count: classrooms.length, classrooms });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -87,7 +87,7 @@ exports.getClassroomsByOrg = async (req, res) => {
 exports.getClassroomList = async (req, res) => {
   try {
     const { orgId } = req.params;
-    const classrooms = await Classroom.find({ orgId }).select('classId className -_id');
+    const classrooms = await Classroom.find({ orgId, isActive: true }).select('classId className -_id');
     res.json({ success: true, count: classrooms.length, classrooms });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -126,7 +126,7 @@ exports.addSubject = async (req, res) => {
 
     if (!name) return res.status(400).json({ error: 'Subject name required' });
 
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     const existingSubject = classroom.subjects.find(s => s.name === name);
@@ -155,7 +155,7 @@ exports.updateLessonStatus = async (req, res) => {
       return res.status(400).json({ error: 'subjectName, lessonName, completed required' });
     }
 
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     const subject = classroom.subjects.find(s => s.name === subjectName);
@@ -192,7 +192,7 @@ exports.addLesson = async (req, res) => {
       return res.status(400).json({ error: 'subjectName and lessonName required' });
     }
 
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     const subject = classroom.subjects.find(s => s.name === subjectName);
@@ -225,7 +225,7 @@ exports.addStudentToClassroom = async (req, res) => {
 
     if (!studentId) return res.status(400).json({ error: 'studentId required' });
 
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     if (classroom.studentIds.includes(studentId)) {
@@ -294,7 +294,7 @@ exports.updateSubject = async (req, res) => {
       return res.status(400).json({ error: 'oldName and newName required' });
     }
 
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     const subject = classroom.subjects.find(s => s.name === oldName);
@@ -321,7 +321,7 @@ exports.removeSubject = async (req, res) => {
   try {
     const { classId, subjectName } = req.params;
 
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     const exists = classroom.subjects.find(s => s.name === subjectName);
@@ -350,7 +350,7 @@ exports.updateLesson = async (req, res) => {
       return res.status(400).json({ error: 'subjectName, oldLessonName, newLessonName required' });
     }
 
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     const subject = classroom.subjects.find(s => s.name === subjectName);
@@ -383,7 +383,7 @@ exports.removeLesson = async (req, res) => {
   try {
     const { classId, subjectName, lessonName } = req.params;
 
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     const subject = classroom.subjects.find(s => s.name === subjectName);

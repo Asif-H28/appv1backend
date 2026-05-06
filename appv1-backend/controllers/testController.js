@@ -36,7 +36,7 @@ exports.createTest = async (req, res) => {
     }
 
     // Get className from classroom
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     let testId = generateTestId();
@@ -67,6 +67,10 @@ exports.createTest = async (req, res) => {
 exports.getTestsByClass = async (req, res) => {
   try {
     const { classId } = req.params;
+
+    
+    const __clsCheck = await require('../models/Classroom').findOne({ classId, isActive: true });
+    if (!__clsCheck) return res.status(403).json({ error: 'Classroom is inactive or not found' });
 
     const tests = await Test.find({ classId }).sort({ createdAt: -1 });
 

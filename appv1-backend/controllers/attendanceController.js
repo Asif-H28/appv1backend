@@ -33,7 +33,7 @@ exports.createAttendance = async (req, res) => {
       }
     }
 
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     const dateStart = new Date(attendanceDate);
@@ -105,6 +105,10 @@ exports.getAttendance = async (req, res) => {
 exports.getAttendanceByClass = async (req, res) => {
   try {
     const { classId } = req.params;
+    
+    const __clsCheck = await require('../models/Classroom').findOne({ classId, isActive: true });
+    if (!__clsCheck) return res.status(403).json({ error: 'Classroom is inactive or not found' });
+
     const attendances = await Attendance.find({ classId }).sort({ attendanceDate: -1 });
     res.json({ success: true, count: attendances.length, attendances });
   } catch (error) {
@@ -152,6 +156,10 @@ exports.getAttendanceByOrg = async (req, res) => {
 exports.getStudentAttendanceSummary = async (req, res) => {
   try {
     const { classId, studentId } = req.params;
+
+    
+    const __clsCheck = await require('../models/Classroom').findOne({ classId, isActive: true });
+    if (!__clsCheck) return res.status(403).json({ error: 'Classroom is inactive or not found' });
 
     const attendances = await Attendance.find({ classId });
 
@@ -315,6 +323,10 @@ exports.getAttendanceByWeek = async (req, res) => {
 
     const startDate = new Date(y, m, weekStart, 0, 0, 0, 0);
     const endDate   = new Date(y, m, weekEnd, 23, 59, 59, 999);
+
+    
+    const __clsCheck = await require('../models/Classroom').findOne({ classId, isActive: true });
+    if (!__clsCheck) return res.status(403).json({ error: 'Classroom is inactive or not found' });
 
     const attendances = await Attendance.find({
       classId,

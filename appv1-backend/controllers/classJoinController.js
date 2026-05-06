@@ -22,6 +22,10 @@ exports.getPendingRequests = async (req, res) => {
 exports.getRequestsByClass = async (req, res) => {
   try {
     const { classId } = req.params;
+    
+    const __clsCheck = await require('../models/Classroom').findOne({ classId, isActive: true });
+    if (!__clsCheck) return res.status(403).json({ error: 'Classroom is inactive or not found' });
+
     const requests = await ClassJoinRequest.find({ classId }).sort({ createdAt: -1 });
     res.json({ success: true, count: requests.length, requests });
   } catch (error) {
@@ -54,7 +58,7 @@ exports.approveRequest = async (req, res) => {
       }
     );
 
-    const classroom = await Classroom.findOne({ classId: request.classId });
+    const classroom = await Classroom.findOne({ classId: request.classId, isActive: true });
     if (classroom && !classroom.studentIds.includes(request.studentId)) {
       classroom.studentIds.push(request.studentId);
       await classroom.save();
@@ -159,7 +163,7 @@ exports.removeStudent = async (req, res) => {
   try {
     const { classId, studentId } = req.params;
 
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     if (!classroom.studentIds.includes(studentId)) {

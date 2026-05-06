@@ -293,7 +293,7 @@ exports.studentApplyLeave = async (req, res) => {
         .json({ error: "Student not approved in any class" });
     }
 
-    const classroom = await Classroom.findOne({ classId: student.classId });
+    const classroom = await Classroom.findOne({ classId: student.classId, isActive: true });
     if (!classroom)
       return res.status(404).json({ error: "Classroom not found" });
 
@@ -411,6 +411,10 @@ exports.getStudentLeaves = async (req, res) => {
 exports.getStudentLeavesByClass = async (req, res) => {
   try {
     const { classId } = req.params;
+    
+    const __clsCheck = await require('../models/Classroom').findOne({ classId, isActive: true });
+    if (!__clsCheck) return res.status(403).json({ error: 'Classroom is inactive or not found' });
+
     const leaves = await StudentLeave.find({ classId }).sort({ createdAt: -1 });
     res.json({ success: true, count: leaves.length, leaves });
   } catch (error) {
@@ -425,6 +429,10 @@ exports.getStudentLeavesByClass = async (req, res) => {
 exports.getPendingStudentLeavesByClass = async (req, res) => {
   try {
     const { classId } = req.params;
+    
+    const __clsCheck = await require('../models/Classroom').findOne({ classId, isActive: true });
+    if (!__clsCheck) return res.status(403).json({ error: 'Classroom is inactive or not found' });
+
     const leaves = await StudentLeave.find({ classId, status: "pending" }).sort(
       { createdAt: -1 }
     );
@@ -460,7 +468,7 @@ exports.reviewStudentLeave = async (req, res) => {
     }
 
     // Verify reviewer is the class teacher
-    const classroom = await Classroom.findOne({ classId: leave.classId });
+    const classroom = await Classroom.findOne({ classId: leave.classId, isActive: true });
     if (!classroom)
       return res.status(404).json({ error: "Classroom not found" });
     if (classroom.teacherId !== reviewedBy) {

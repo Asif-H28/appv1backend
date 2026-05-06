@@ -16,7 +16,9 @@ const classroomSchema = new mongoose.Schema({
   orgId: { type: String, required: true },
   className: { type: String, required: true, trim: true },
   studentIds: { type: [String], default: [] },
-  subjects: { type: [subjectSchema], default: [] }
+  subjects: { type: [subjectSchema], default: [] },
+  isActive: { type: Boolean, default: true },
+  academicYear: { type: String, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Classroom', classroomSchema);

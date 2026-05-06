@@ -58,7 +58,7 @@ exports.createTimetable = async (req, res) => {
     }
 
     // Validate classroom
-    const classroom = await Classroom.findOne({ classId });
+    const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     // Check duplicate timetable for same class + academicYear

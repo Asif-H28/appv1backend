@@ -11,6 +11,7 @@ const {
   updateAdminFcmToken,
   getSchoolDetails,      // ← NEW
   updateSchoolDetails,   // ← NEW
+  rollupAcademicYear,    // ← NEW
 } = require('../controllers/orgController');
 
 router.post('/create',                  createOrganization);
@@ -23,5 +24,6 @@ router.get ('/:orgId/count',            getTeacherCountByOrg);
 router.put ('/:orgId/fcm-token',        updateAdminFcmToken);
 router.get ('/:orgId/school-details',   getSchoolDetails);    // ← NEW
 router.put ('/:orgId/school-details',   updateSchoolDetails); // ← NEW
+router.post('/:orgId/rollup-year',      rollupAcademicYear);  // ← NEW
 
 module.exports = router;

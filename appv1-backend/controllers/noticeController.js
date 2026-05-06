@@ -14,7 +14,7 @@ exports.createNotice = async (req, res) => {
       return res.status(400).json({ error: 'title, description, createdBy, classroomId, expiresAt required' });
     }
 
-    const classroom = await Classroom.findOne({ classId: classroomId });
+    const classroom = await Classroom.findOne({ classId: classroomId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
     const attachments = [];
@@ -88,6 +88,10 @@ exports.getNoticesByClassroom = async (req, res) => {
       classroomId: classId,
       expiresAt: { $lt: new Date() }
     });
+
+    
+    const __clsCheck = await require('../models/Classroom').findOne({ classId, isActive: true });
+    if (!__clsCheck) return res.status(403).json({ error: 'Classroom is inactive or not found' });
 
     const notices = await Notice.find({ classroomId: classId }).sort({ createdAt: -1 });
 
