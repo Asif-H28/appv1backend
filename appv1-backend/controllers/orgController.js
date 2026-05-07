@@ -414,13 +414,6 @@ exports.rollupAcademicYear = async (req, res) => {
       );
     }
 
-    // Additionally, any class not in mappings should probably be archived if it's from the old year.
-    // For safety, we can archive ALL active classes not touched, but it's better to let the admin do it explicitly.
-    // Let's archive all active classes that weren't just created.
-    const newClassIdsCreated = classMappings.map(m => mapping.newClassId); // wait, we didn't save it
-    
-    // Simpler: Just rely on the mappings to explicitly archive.
-
     res.json({
       success: true,
       message: `Successfully rolled up to academic year ${newAcademicYear}`
