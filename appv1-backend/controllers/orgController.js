@@ -401,9 +401,9 @@ exports.rollupAcademicYear = async (req, res) => {
       newClass.studentIds = allStudentsForNewClass;
       await newClass.save();
 
-      // 5. Update pending join requests for the old class to point to the new class
+      // 5. Update ALL join requests (pending, approved, rejected) for the old class to point to the new class
       await ClassJoinRequest.updateMany(
-        { classId: oldClassId, status: 'pending' },
+        { classId: oldClassId },
         { 
           $set: { 
             classId: newClassId,
