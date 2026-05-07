@@ -125,6 +125,7 @@ app.use('/api/comprehensive-result', require('./routes/comprehensiveResultRoutes
 
 // Super Admin Authentication Routes (isolated to 'webapp' DB)
 app.use('/api/super-admin', require('./routes/superAdminAuth'));
+app.use('/api/super-admin/app', require('./routes/superAdminApp'));
 
 // 404 handler (FIXED syntax)
 app.use((req, res) => {
