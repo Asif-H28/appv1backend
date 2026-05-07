@@ -372,7 +372,7 @@ exports.rollupAcademicYear = async (req, res) => {
         orgId,
         className: promotedToNewClassName,
         studentIds: [], // Will be filled below
-        subjects: oldClass ? oldClass.subjects : [], // Copy subjects from old class, or empty
+        subjects: [], // New classes start with empty subjects
         isActive: true,
         academicYear: newAcademicYear
       });
@@ -388,23 +388,8 @@ exports.rollupAcademicYear = async (req, res) => {
         allStudentsForNewClass.push(...studentsToPromote);
       }
 
-      // 4. Update retained students (They stay in the newly created version of the OLD class name)
-      // Wait, if they are retained, they shouldn't go to promotedToNewClassName.
-      // They should go to a new class with the OLD name.
-      // To simplify, let's assume the payload explicitly defines what class they go to.
-      // If the API design is simpler: "Just move these students to this new class".
-      // Let's adjust: The payload just says "Create this new class, put these students in it".
-      // But the user asked for a specific mapping.
-      // Let's refine the logic:
-      // A mapping creates ONE new class. studentsToPromote go there.
-      // If there are studentsToRetain, we need another mapping for them (to the lower grade).
-      // Let's just use `studentIds` array in the mapping.
-
+      // 4. Update retained students
       if (studentsToRetain && studentsToRetain.length > 0) {
-        // This assumes they are also added to this new class. If they are retained, they usually stay in the old grade.
-        // It's better if the payload just has `studentIds` to add to the new class.
-        // Let's support `studentIds` instead of promote/retain to be more flexible.
-        // For backward compatibility with the example I gave, I'll combine them for now, but in reality, admins will map them properly.
         await Student.updateMany(
           { studentId: { $in: studentsToRetain } },
           { $set: { classId: newClassId } }
@@ -416,8 +401,17 @@ exports.rollupAcademicYear = async (req, res) => {
       newClass.studentIds = allStudentsForNewClass;
       await newClass.save();
 
-      // 5. Clean up pending join requests for the old class
-      await ClassJoinRequest.deleteMany({ classId: oldClassId, status: 'pending' });
+      // 5. Update pending join requests for the old class to point to the new class
+      await ClassJoinRequest.updateMany(
+        { classId: oldClassId, status: 'pending' },
+        { 
+          $set: { 
+            classId: newClassId,
+            className: promotedToNewClassName,
+            teacherId: newClass.teacherId
+          } 
+        }
+      );
     }
 
     // Additionally, any class not in mappings should probably be archived if it's from the old year.
