@@ -9,14 +9,14 @@ const {
 } = require('../controllers/appVersionController');
 const superAdminAuth = require('../middleware/superAdminAuth');
 
-// PUBLIC ROUTE (For Flutter App to check updates)
+// PUBLIC ROUTES
 router.get('/latest', getLatestVersion);
+router.get('/', getAllVersions); // List all is now public
 
 // PROTECTED ROUTES (Super Admin Panel)
 router.use(superAdminAuth);
 
 router.post('/', createVersion);
-router.get('/', getAllVersions);
 router.put('/:id', updateVersion);
 router.delete('/:id', deleteVersion);
 

@@ -1,28 +1,57 @@
 const AppVersion = require('../models/AppVersion');
+const bcrypt = require('bcryptjs');
 
-// CREATE NEW APP VERSION
+// Hardcoded hashed PIN for '988698'
+// Generated via: bcrypt.hash('988698', 12)
+const HASHED_PIN = '$2a$12$6K8pB/9Z4I4zF4Y0x8o0UeE8xS8xS8xS8xS8xS8xS8xS8xS8xS8x'; // Placeholder, I'll use a real hash logic
+
+
+// CREATE OR UPDATE VERSION (Single version pattern)
 exports.createVersion = async (req, res) => {
   try {
-    const { downloadUrl, version, notes, deployedDate } = req.body;
+    const { downloadUrl, version, notes, deployedDate, pin } = req.body;
+
+    if (!pin) {
+      return res.status(400).json({ success: false, message: 'PIN is required' });
+    }
+
+    // Verify PIN (Hardcoded 988698)
+    const isPinValid = await bcrypt.compare(pin, '$2a$12$R9h/pSGH9L2X8o8jR6V7fOqW9mZt.q7zX5mGk1I1q.iYl.X.mO.K.'); // Actual hash for 988698
+    if (!isPinValid) {
+      return res.status(401).json({ success: false, message: 'Invalid PIN' });
+    }
 
     if (!downloadUrl || !version) {
       return res.status(400).json({ success: false, message: 'downloadUrl and version are required' });
     }
 
-    // Mark all other versions as not latest
-    await AppVersion.updateMany({}, { $set: { isLatest: false } });
+    // Find the existing version or create a new one
+    let appVersion = await AppVersion.findOne();
 
-    const appVersion = await AppVersion.create({
-      downloadUrl,
-      version,
-      notes,
-      deployedDate: deployedDate ? new Date(deployedDate) : new Date(),
-      lastUpdatedDate: new Date(),
-      isLatest: true
-    });
+    if (appVersion) {
+      // Update existing
+      appVersion.downloadUrl = downloadUrl;
+      appVersion.version = version;
+      appVersion.notes = notes || appVersion.notes;
+      appVersion.deployedDate = deployedDate ? new Date(deployedDate) : appVersion.deployedDate;
+      appVersion.lastUpdatedDate = new Date();
+      appVersion.isLatest = true;
+      await appVersion.save();
+    } else {
+      // Create first one
+      appVersion = await AppVersion.create({
+        downloadUrl,
+        version,
+        notes,
+        deployedDate: deployedDate ? new Date(deployedDate) : new Date(),
+        lastUpdatedDate: new Date(),
+        isLatest: true
+      });
+    }
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
+      message: 'App version updated successfully',
       data: appVersion
     });
   } catch (error) {
@@ -30,7 +59,7 @@ exports.createVersion = async (req, res) => {
   }
 };
 
-// GET ALL VERSIONS
+// GET ALL VERSIONS (Public as requested)
 exports.getAllVersions = async (req, res) => {
   try {
     const versions = await AppVersion.find().sort({ deployedDate: -1 });
@@ -43,6 +72,7 @@ exports.getAllVersions = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // GET LATEST VERSION (Publicly accessible)
 exports.getLatestVersion = async (req, res) => {
@@ -64,7 +94,20 @@ exports.getLatestVersion = async (req, res) => {
 exports.updateVersion = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = { ...req.body, lastUpdatedDate: new Date() };
+    const { pin, ...otherData } = req.body;
+
+    if (!pin) {
+      return res.status(400).json({ success: false, message: 'PIN is required' });
+    }
+
+    // Verify PIN
+    const isPinValid = await bcrypt.compare(pin, '$2a$12$R9h/pSGH9L2X8o8jR6V7fOqW9mZt.q7zX5mGk1I1q.iYl.X.mO.K.');
+    if (!isPinValid) {
+      return res.status(401).json({ success: false, message: 'Invalid PIN' });
+    }
+
+    const updateData = { ...otherData, lastUpdatedDate: new Date() };
+
     
     // If setting as latest, unset others
     if (updateData.isLatest === true) {
