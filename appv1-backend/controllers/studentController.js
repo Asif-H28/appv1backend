@@ -310,3 +310,29 @@ exports.getStudentsByClass = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// GET ONLY NAMES AND IDS BY CLASSID (ROLLUP COMPATIBLE)
+exports.getStudentNamesByClass = async (req, res) => {
+  try {
+    const { classId } = req.params;
+
+    const classroom = await Classroom.findOne({ classId });
+    if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
+
+    const students = await Student.find(
+      { classId, joinStatus: 'approved' },
+      'studentId name'
+    ).sort({ name: 1 });
+
+    res.json({
+      success: true,
+      count: students.length,
+      students: students.map(s => ({
+        studentId: s.studentId,
+        name: s.name
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

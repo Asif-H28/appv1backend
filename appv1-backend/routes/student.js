@@ -8,7 +8,8 @@ const {
   sendJoinRequest,
   getStudentProfile,
     updateStudentProfile,  
-    getStudentsByClass
+    getStudentsByClass,
+    getStudentNamesByClass
 } = require('../controllers/studentController');
 
 router.post('/register', register);
@@ -18,6 +19,7 @@ router.get('/orgs/:orgId/classes', listClassesByOrg);
 router.post('/join-request', sendJoinRequest);
 router.get('/profile/:studentId', getStudentProfile);
 router.put('/profile/:studentId', updateStudentProfile);
-router.get('/class/:classId', getStudentsByClass);  // ← ADD THIS
+router.get('/class/:classId', getStudentsByClass);  // ← Existing full profile list
+router.get('/class/:classId/names', getStudentNamesByClass); // ← NEW: Names & IDs only (Rollup compatible)
 
 module.exports = router;
