@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 
 // Hardcoded hashed PIN for '988698'
 // Generated via: bcrypt.hash('988698', 12)
-const HASHED_PIN = '$2a$12$6K8pB/9Z4I4zF4Y0x8o0UeE8xS8xS8xS8xS8xS8xS8xS8xS8xS8x'; // Placeholder, I'll use a real hash logic
+const HASHED_PIN = '$2b$12$qGt7jFLe.jDrbpRS9m1Jw.9unOsD75BDocnX1.FbG4RA3P6WpyKqq'; // Hashed PIN for '988698'
 
 
 // CREATE OR UPDATE VERSION (Single version pattern)
@@ -16,7 +16,7 @@ exports.createVersion = async (req, res) => {
     }
 
     // Verify PIN (Hardcoded 988698)
-    const isPinValid = await bcrypt.compare(pin, '$2a$12$R9h/pSGH9L2X8o8jR6V7fOqW9mZt.q7zX5mGk1I1q.iYl.X.mO.K.'); // Actual hash for 988698
+    const isPinValid = await bcrypt.compare(pin, HASHED_PIN); 
     if (!isPinValid) {
       return res.status(401).json({ success: false, message: 'Invalid PIN' });
     }
@@ -101,7 +101,7 @@ exports.updateVersion = async (req, res) => {
     }
 
     // Verify PIN
-    const isPinValid = await bcrypt.compare(pin, '$2a$12$R9h/pSGH9L2X8o8jR6V7fOqW9mZt.q7zX5mGk1I1q.iYl.X.mO.K.');
+    const isPinValid = await bcrypt.compare(pin, HASHED_PIN);
     if (!isPinValid) {
       return res.status(401).json({ success: false, message: 'Invalid PIN' });
     }
