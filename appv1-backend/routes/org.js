@@ -19,13 +19,13 @@ const checkOrgStatus = require('../middleware/checkOrgStatus');
 
 router.post('/create',                  createOrganization);
 router.post('/admin/login',             adminLogin);
+router.get ('/search',                  searchOrganization);
 
 // Protected Routes
 router.use(auth);
 router.use(checkOrgStatus);
 router.put ('/:orgId/profile',          updateOrganizationProfile);
 router.get ('/:orgId/profile',          getOrganizationProfile);
-router.get ('/search',                  searchOrganization);
 router.get ('/list',                    getAllOrganizations);
 router.get ('/:orgId/count',            getTeacherCountByOrg);
 router.put ('/:orgId/fcm-token',        updateAdminFcmToken);
