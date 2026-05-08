@@ -9,6 +9,7 @@ const {
   addComment,
   deleteComment,
   updateAchievement,
+  deleteAchievement
 } = require('../controllers/achievementController');
 
 const auth = require('../middleware/auth');
