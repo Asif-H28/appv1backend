@@ -9,8 +9,13 @@ const {
   addComment,
   deleteComment,
   updateAchievement,
-  deleteAchievement
 } = require('../controllers/achievementController');
+
+const auth = require('../middleware/auth');
+const checkOrgStatus = require('../middleware/checkOrgStatus');
+
+router.use(auth);
+router.use(checkOrgStatus);
 
 router.post('/create',                                createAchievement);
 router.get('/org/:orgId',                             getAchievementsByOrg);
