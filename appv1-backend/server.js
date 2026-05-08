@@ -127,6 +127,9 @@ app.use('/api/comprehensive-result', require('./routes/comprehensiveResultRoutes
 app.use('/api/super-admin', require('./routes/superAdminAuth'));
 app.use('/api/super-admin/app', require('./routes/superAdminApp'));
 
+// License Key Request Routes
+app.use('/api/license-request', require('./routes/licenseRequestRoutes'));
+
 // 404 handler (FIXED syntax)
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
