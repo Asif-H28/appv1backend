@@ -24,6 +24,12 @@ const {
   clearAdminFcmToken
 } = require('../controllers/notificationController');
 
+const auth = require('../middleware/auth');
+const checkOrgStatus = require('../middleware/checkOrgStatus');
+
+router.use(auth);
+router.use(checkOrgStatus);
+
 router.post('/fcm/student', saveStudentFcmToken);
 router.post('/fcm/teacher', saveTeacherFcmToken);
 router.post('/send/class', sendToClass);

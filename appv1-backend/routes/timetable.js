@@ -12,6 +12,12 @@ const {
   deleteTimetable
 } = require('../controllers/timetableController');
 
+const auth = require('../middleware/auth');
+const checkOrgStatus = require('../middleware/checkOrgStatus');
+
+router.use(auth);
+router.use(checkOrgStatus);
+
 router.post('/create', createTimetable);
 router.get('/class/:classId', getTimetableByClass);
 router.get('/class/:classId/today', getTodayTimetable);

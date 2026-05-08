@@ -14,6 +14,12 @@ const {
   getAttendanceByWeek
 } = require('../controllers/attendanceController');
 
+const auth = require('../middleware/auth');
+const checkOrgStatus = require('../middleware/checkOrgStatus');
+
+router.use(auth);
+router.use(checkOrgStatus);
+
 router.post('/create', createAttendance);
 router.get('/class/:classId', getAttendanceByClass);
 router.get('/class/:classId/date/:date', getAttendanceByClassAndDate);

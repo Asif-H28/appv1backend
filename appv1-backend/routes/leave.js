@@ -15,6 +15,12 @@ const {
   deleteStudentLeave
 } = require('../controllers/leaveController');
 
+const auth = require('../middleware/auth');
+const checkOrgStatus = require('../middleware/checkOrgStatus');
+
+router.use(auth);
+router.use(checkOrgStatus);
+
 // ── TEACHER LEAVE ROUTES ──
 router.post('/teacher/apply',                     teacherApplyLeave);
 router.get('/teacher/:teacherId',                 getTeacherLeaves);
