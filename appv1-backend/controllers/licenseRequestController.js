@@ -1,4 +1,5 @@
 const LicenseRequest = require('../models/LicenseRequest');
+const crypto = require('crypto');
 
 /**
  * @desc    Submit a new license key request
@@ -84,26 +85,44 @@ exports.getRequests = async (req, res) => {
 exports.updateRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, requestReviewed, isActive, expiryDate } = req.body;
+    const { status, requestReviewed, isActive, expiryDate, associatedOrgId, adminEmail } = req.body;
+
+    // Find the current request first
+    let licenseRequest = await LicenseRequest.findById(id);
+
+    if (!licenseRequest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Request not found'
+      });
+    }
 
     const updateData = {};
     if (status !== undefined) updateData.status = status;
     if (requestReviewed !== undefined) updateData.requestReviewed = requestReviewed;
     if (isActive !== undefined) updateData.isActive = isActive;
     if (expiryDate !== undefined) updateData.expiryDate = expiryDate;
+    if (associatedOrgId !== undefined) updateData.associatedOrgId = associatedOrgId;
+    if (adminEmail !== undefined) updateData.adminEmail = adminEmail;
+
+    // Logical Check: Generate License Key if conditions are met
+    // Conditions: status is completed/Approved AND isActive is true AND requestReviewed is true
+    // AND no licenseKey already exists
+    const isApproved = status === 'completed' || status === 'Approved';
+    const active = isActive === true || (isActive === undefined && licenseRequest.isActive === true);
+    const reviewed = requestReviewed === true || (requestReviewed === undefined && licenseRequest.requestReviewed === true);
+
+    if (isApproved && active && reviewed && !licenseRequest.licenseKey) {
+      // Create a unique hashed UUID for the license key
+      const uuid = crypto.randomUUID();
+      updateData.licenseKey = crypto.createHash('sha256').update(uuid).digest('hex').toUpperCase().substring(0, 16);
+    }
 
     const updatedRequest = await LicenseRequest.findByIdAndUpdate(
       id,
       updateData,
       { new: true, runValidators: true }
     );
-
-    if (!updatedRequest) {
-      return res.status(404).json({
-        success: false,
-        message: 'Request not found'
-      });
-    }
 
     res.status(200).json({
       success: true,

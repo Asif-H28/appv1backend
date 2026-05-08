@@ -58,6 +58,19 @@ const licenseRequestSchema = new mongoose.Schema({
   expiryDate: {
     type: Date
   },
+  licenseKey: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  associatedOrgId: {
+    type: String,
+    default: null
+  },
+  adminEmail: {
+    type: String,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
