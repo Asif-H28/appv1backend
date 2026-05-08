@@ -12,9 +12,16 @@ const {
   rejectJoinRequest
 } = require('../controllers/teacherController');
 
-// Auth
+const auth = require('../middleware/auth');
+const checkOrgStatus = require('../middleware/checkOrgStatus');
+
+// Auth (Public)
 router.post('/register', registerTeacher);
 router.post('/login', loginTeacher);
+
+// Protected Routes (Requires valid token and active organization)
+router.use(auth);
+router.use(checkOrgStatus);
 
 // Profile
 router.get('/org/:orgId', getOrgTeachers);

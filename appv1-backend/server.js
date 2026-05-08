@@ -74,52 +74,33 @@ app.get('/test-db', async (req, res) => {
 
 // Auth routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/auth', require('./routes/authForgotPassword')); // ← forgot-password / verify-otp / reset-password
+app.use('/api/auth', require('./routes/authForgotPassword'));
 
+// Org routes (Public creation/login)
 app.use('/api/org', require('./routes/org'));
-
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/org', require('./routes/org'));
-app.use('/api/teacher', require('./routes/teacher'));   // ← ADD THIS
-
-
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/org', require('./routes/org'));
-app.use('/api/teacher', require('./routes/teacher'));
-app.use('/api/classroom', require('./routes/classroom'));  // ← ADD THIS
-
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/org', require('./routes/org'));
-app.use('/api/teacher', require('./routes/teacher'));
-app.use('/api/classroom', require('./routes/classroom'));
-app.use('/api/upload', require('./routes/upload'));   // ← ADD THIS
-
-app.use('/api/notice', require('./routes/notice'));  // ← ADD THIS
-
-app.use('/api/notes', require('./routes/notes'));  // ← ADD THIS
-
-app.use('/api/test', require('./routes/test'));  // ← ADD THIS
-
-
-app.use('/api/attendance', require('./routes/attendance'));  // ← ADD THIS
-
-app.use('/api/timetable', require('./routes/timetable'));  // ← ADD THIS
-
-app.use('/api/student', require('./routes/student'));
-app.use('/api/join', require('./routes/classJoin'));
-
-
-app.use('/api/notification', require('./routes/notification'));
-const leaveRoutes = require('./routes/leave');  // ← ADD THIS
-app.use('/api/leave', leaveRoutes);
-
-const achievementRoutes = require('./routes/achievement');
-app.use('/api/achievement', achievementRoutes);
-
-const adminNoticeRoutes = require('./routes/adminNoticeRoutes');
-app.use('/api/admin-notices', adminNoticeRoutes);
-
 app.use('/api/org/school', require('./routes/school.routes'));
+
+// Teacher routes
+app.use('/api/teacher', require('./routes/teacher'));
+
+// Classroom routes
+app.use('/api/classroom', require('./routes/classroom'));
+
+// Student routes
+app.use('/api/student', require('./routes/student'));
+
+// Feature routes
+app.use('/api/upload', require('./routes/upload'));
+app.use('/api/notice', require('./routes/notice'));
+app.use('/api/notes', require('./routes/notes'));
+app.use('/api/test', require('./routes/test'));
+app.use('/api/attendance', require('./routes/attendance'));
+app.use('/api/timetable', require('./routes/timetable'));
+app.use('/api/join', require('./routes/classJoin'));
+app.use('/api/notification', require('./routes/notification'));
+app.use('/api/leave', require('./routes/leave'));
+app.use('/api/achievement', require('./routes/achievement'));
+app.use('/api/admin-notices', require('./routes/adminNoticeRoutes'));
 app.use('/api/comprehensive-assessment', require('./routes/comprehensiveAssessmentRoutes'));
 app.use('/api/comprehensive-result', require('./routes/comprehensiveResultRoutes'));
 

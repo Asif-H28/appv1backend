@@ -11,9 +11,17 @@ const {
     getStudentsByClass,
     getStudentNamesByClass
 } = require('../controllers/studentController');
+const auth = require('../middleware/auth');
+const checkOrgStatus = require('../middleware/checkOrgStatus');
 
+// Auth (Public)
 router.post('/register', register);
 router.post('/login', login);
+
+// Protected Routes
+router.use(auth);
+router.use(checkOrgStatus);
+
 router.get('/orgs', listOrgs);
 router.get('/orgs/:orgId/classes', listClassesByOrg);
 router.post('/join-request', sendJoinRequest);

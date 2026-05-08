@@ -18,6 +18,11 @@ const {
   deleteClassroom,
   getClassroomList
 } = require('../controllers/classroomController');
+const auth = require('../middleware/auth');
+const checkOrgStatus = require('../middleware/checkOrgStatus');
+
+router.use(auth);
+router.use(checkOrgStatus);
 
 router.post('/create', createClassroom);
 router.get('/teacher/:teacherId', getClassroomsByTeacher);
