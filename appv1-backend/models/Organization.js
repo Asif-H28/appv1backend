@@ -21,6 +21,10 @@ const organizationSchema = new mongoose.Schema(
     schoolEmail:    { type: String, default: '' },
     primaryContact: { type: String, default: '' },
 
+    // ── License & Status ───────────
+    licenseKey:     { type: String, default: null },
+    isActive:       { type: Boolean, default: false },
+
     // ── Academic Year Details ───────────
     currentAcademicYear: { type: String, default: null },
     academicYearStartDate: { type: Date, default: null },

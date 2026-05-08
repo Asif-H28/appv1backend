@@ -6,14 +6,30 @@ const Teacher = require('../models/Teacher');
 const Classroom = require('../models/Classroom');
 const Student = require('../models/Student');
 const ClassJoinRequest = require('../models/ClassJoinRequest');
+const LicenseRequest = require('../models/LicenseRequest');
 
 // CREATE ORGANIZATION
 exports.createOrganization = async (req, res) => {
   try {
-    const { orgName, adminEmail, adminPassword } = req.body;
+    const { orgName, adminEmail, adminPassword, licenseKey } = req.body;
 
-    if (!orgName || !adminEmail || !adminPassword) {
-      return res.status(400).json({ error: 'All fields required' });
+    if (!orgName || !adminEmail || !adminPassword || !licenseKey) {
+      return res.status(400).json({ error: 'All fields (orgName, adminEmail, adminPassword, licenseKey) are required' });
+    }
+
+    // 1. Validate License Key
+    const license = await LicenseRequest.findOne({ licenseKey });
+    if (!license) {
+      return res.status(401).json({ 
+        error: 'Please get a Licence key to create organization error and unathorised to perform this action' 
+      });
+    }
+
+    // 2. Prevent multiple organizations using one license key
+    if (license.associatedOrgId) {
+      return res.status(400).json({ 
+        error: 'This license key has already been used to create an organization. Each key is valid for one-time use only.' 
+      });
     }
 
     const generateId = () => `ORG_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -36,7 +52,15 @@ exports.createOrganization = async (req, res) => {
       orgId,
       name: orgName,
       adminEmail,
-      adminPassword: hashedPassword
+      adminPassword: hashedPassword,
+      licenseKey,
+      isActive: true // Set to true upon successful registration
+    });
+
+    // 2. Update License Request with associated info
+    await LicenseRequest.findByIdAndUpdate(license._id, {
+      associatedOrgId: orgId,
+      adminEmail: adminEmail
     });
 
     const token = jwt.sign(
