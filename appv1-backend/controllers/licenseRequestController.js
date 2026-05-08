@@ -1,5 +1,6 @@
 const LicenseRequest = require('../models/LicenseRequest');
 const crypto = require('crypto');
+const { sendLicenseKeyEmail } = require('../utils/mailer');
 
 /**
  * @desc    Submit a new license key request
@@ -112,10 +113,14 @@ exports.updateRequest = async (req, res) => {
     const active = isActive === true || (isActive === undefined && licenseRequest.isActive === true);
     const reviewed = requestReviewed === true || (requestReviewed === undefined && licenseRequest.requestReviewed === true);
 
+    let justGeneratedKey = null;
+
     if (isApproved && active && reviewed && !licenseRequest.licenseKey) {
       // Create a unique hashed UUID for the license key
       const uuid = crypto.randomUUID();
-      updateData.licenseKey = crypto.createHash('sha256').update(uuid).digest('hex').toUpperCase().substring(0, 16);
+      const newKey = crypto.createHash('sha256').update(uuid).digest('hex').toUpperCase().substring(0, 16);
+      updateData.licenseKey = newKey;
+      justGeneratedKey = newKey;
     }
 
     const updatedRequest = await LicenseRequest.findByIdAndUpdate(
@@ -123,6 +128,17 @@ exports.updateRequest = async (req, res) => {
       updateData,
       { new: true, runValidators: true }
     );
+
+    // If we just generated a key, send it via email
+    if (justGeneratedKey) {
+      // Use fire and forget for email so we don't delay the API response
+      sendLicenseKeyEmail(
+        licenseRequest.workEmail,
+        justGeneratedKey,
+        licenseRequest.schoolName,
+        licenseRequest.fullName
+      );
+    }
 
     res.status(200).json({
       success: true,
