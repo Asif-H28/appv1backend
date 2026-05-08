@@ -339,6 +339,55 @@ exports.getSchoolDetails = async (req, res) => {
   }
 };
 
+// SUPER ADMIN: GET ORGANIZATION BY ORG ID
+exports.getOrganizationByOrgId = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    const organization = await Organization.findOne({ orgId }).select('-adminPassword');
+
+    if (!organization) {
+      return res.status(404).json({ success: false, message: 'Organization not found' });
+    }
+
+    res.json({
+      success: true,
+      data: organization
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// SUPER ADMIN: UPDATE ORGANIZATION STATUS (isActive)
+exports.updateOrganizationStatus = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    const { isActive } = req.body;
+
+    if (isActive === undefined) {
+      return res.status(400).json({ success: false, message: 'isActive field is required' });
+    }
+
+    const organization = await Organization.findOneAndUpdate(
+      { orgId },
+      { $set: { isActive } },
+      { new: true }
+    ).select('-adminPassword');
+
+    if (!organization) {
+      return res.status(404).json({ success: false, message: 'Organization not found' });
+    }
+
+    res.json({
+      success: true,
+      message: `Organization ${isActive ? 'activated' : 'deactivated'} successfully`,
+      data: organization
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // ROLLUP ACADEMIC YEAR
 exports.rollupAcademicYear = async (req, res) => {
   try {

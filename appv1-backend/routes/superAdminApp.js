@@ -7,6 +7,10 @@ const {
   updateVersion,
   deleteVersion
 } = require('../controllers/appVersionController');
+const {
+  getOrganizationByOrgId,
+  updateOrganizationStatus
+} = require('../controllers/orgController');
 const superAdminAuth = require('../middleware/superAdminAuth');
 
 // PUBLIC ROUTES
@@ -19,5 +23,9 @@ router.use(superAdminAuth);
 router.post('/', createVersion);
 router.put('/:id', updateVersion);
 router.delete('/:id', deleteVersion);
+
+// Organization Management
+router.get('/org/:orgId', getOrganizationByOrgId);
+router.patch('/org/:orgId/status', updateOrganizationStatus);
 
 module.exports = router;
