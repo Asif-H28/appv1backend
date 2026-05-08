@@ -77,18 +77,24 @@ exports.getRequests = async (req, res) => {
 };
 
 /**
- * @desc    Update license request status
+ * @desc    Update license request (for Super Admin)
  * @route   PATCH /api/license-request/:id
  * @access  Private (Super Admin)
  */
-exports.updateRequestStatus = async (req, res) => {
+exports.updateRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, requestReviewed } = req.body;
+    const { status, requestReviewed, isActive, expiryDate } = req.body;
+
+    const updateData = {};
+    if (status !== undefined) updateData.status = status;
+    if (requestReviewed !== undefined) updateData.requestReviewed = requestReviewed;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (expiryDate !== undefined) updateData.expiryDate = expiryDate;
 
     const updatedRequest = await LicenseRequest.findByIdAndUpdate(
       id,
-      { status, requestReviewed },
+      updateData,
       { new: true, runValidators: true }
     );
 

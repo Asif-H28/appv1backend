@@ -3,7 +3,7 @@ const router = express.Router();
 const {
   submitRequest,
   getRequests,
-  updateRequestStatus
+  updateRequest
 } = require('../controllers/licenseRequestController');
 const superAdminAuth = require('../middleware/superAdminAuth');
 
@@ -12,6 +12,6 @@ router.post('/', submitRequest);
 
 // Protected routes for Super Admin
 router.get('/', superAdminAuth, getRequests);
-router.patch('/:id', superAdminAuth, updateRequestStatus);
+router.patch('/:id', superAdminAuth, updateRequest);
 
 module.exports = router;

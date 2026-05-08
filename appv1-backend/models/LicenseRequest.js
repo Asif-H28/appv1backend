@@ -51,6 +51,13 @@ const licenseRequestSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'rejected'],
     default: 'pending'
   },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  expiryDate: {
+    type: Date
+  },
   createdAt: {
     type: Date,
     default: Date.now
