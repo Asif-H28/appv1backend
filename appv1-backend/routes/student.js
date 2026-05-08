@@ -19,11 +19,11 @@ router.post('/register', register);
 router.post('/login', login);
 router.get('/orgs', listOrgs);
 router.get('/orgs/:orgId/classes', listClassesByOrg);
+router.post('/join-request', sendJoinRequest); // Public
 
 // Protected Routes
 router.use(auth);
 router.use(checkOrgStatus);
-router.post('/join-request', sendJoinRequest);
 router.get('/profile/:studentId', getStudentProfile);
 router.put('/profile/:studentId', updateStudentProfile);
 router.get('/class/:classId', getStudentsByClass);  // ← Existing full profile list
