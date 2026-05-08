@@ -14,8 +14,15 @@ const {
   rollupAcademicYear,    // ← NEW
 } = require('../controllers/orgController');
 
+const auth = require('../middleware/auth');
+const checkOrgStatus = require('../middleware/checkOrgStatus');
+
 router.post('/create',                  createOrganization);
 router.post('/admin/login',             adminLogin);
+
+// Protected Routes
+router.use(auth);
+router.use(checkOrgStatus);
 router.put ('/:orgId/profile',          updateOrganizationProfile);
 router.get ('/:orgId/profile',          getOrganizationProfile);
 router.get ('/search',                  searchOrganization);
