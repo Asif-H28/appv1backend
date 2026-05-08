@@ -69,13 +69,13 @@ async function sendLicenseKeyEmail(toEmail, licenseKey, schoolName, name) {
     const senderEmail = process.env.GMAIL_USER || 'asif28072001@gmail.com';
 
     const payload = {
-      sender: { name: "EduSync Support", email: senderEmail },
+      sender: { name: "SchoolSync Support", email: senderEmail },
       to: [{ email: toEmail }],
       subject: `Your License Key for ${schoolName}`,
       htmlContent: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:12px;background:#ffffff;">
           <div style="text-align:center;margin-bottom:24px;">
-            <h1 style="color:#00796B;margin:0;">EduSync</h1>
+            <h1 style="color:#00796B;margin:0;">SchoolSync</h1>
             <p style="color:#6b7280;margin:4px 0;">School Management Excellence</p>
           </div>
           
@@ -87,14 +87,15 @@ async function sendLicenseKeyEmail(toEmail, licenseKey, schoolName, name) {
           
           <div style="background:#f0fdfa;border:2px dashed #00796B;border-radius:8px;padding:24px;text-align:center;margin:32px 0;">
             <p style="margin:0 0 8px 0;font-size:13px;color:#00796B;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Your Unique License Key</p>
-            <div style="font-size:32px;font-family:monospace;font-weight:bold;color:#1a1a1a;letter-spacing:2px;">
+            <div style="font-size:32px;font-family:monospace;font-weight:bold;color:#1a1a1a;letter-spacing:2px;padding:12px;background:#ffffff;border-radius:4px;display:inline-block;border:1px solid #e5e7eb;">
               ${licenseKey}
             </div>
+            <p style="margin:12px 0 0 0;font-size:12px;color:#6b7280;">(Select and copy the key above)</p>
           </div>
           
           <div style="background:#fff7ed;border-left:4px solid #f97316;padding:16px;margin-bottom:24px;">
-            <p style="margin:0;font-size:14px;color:#9a3412;">
-              <strong>Next Step:</strong> Go to the EduSync app, select "Register Organisation", and enter this key to begin your setup.
+            <p style="margin:0;font-size:14px;color:#9a3412;line-height:1.5;">
+              <strong>Next Step:</strong> Go to the <strong>SchoolSync app</strong>, create your organisation, and paste this license key along with your other basic details to complete your registration.
             </p>
           </div>
           
@@ -105,7 +106,7 @@ async function sendLicenseKeyEmail(toEmail, licenseKey, schoolName, name) {
           <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0;">
           
           <div style="text-align:center;">
-            <p style="color:#9ca3af;font-size:12px;margin:0;">&copy; 2026 EduSync. All rights reserved.</p>
+            <p style="color:#9ca3af;font-size:12px;margin:0;">&copy; 2026 SchoolSync. All rights reserved.</p>
           </div>
         </div>
       `
