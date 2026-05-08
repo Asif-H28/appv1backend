@@ -12,6 +12,12 @@ const {
   deleteNotesByClass
 } = require('../controllers/notesController');
 
+const auth = require('../middleware/auth');
+const checkOrgStatus = require('../middleware/checkOrgStatus');
+
+router.use(auth);
+router.use(checkOrgStatus);
+
 router.post('/create', uploadNotesFiles.array('files', 10), createNote);  // max 10 files
 router.get('/class/:classId', getNotesByClass);
 router.get('/org/:orgId', getNotesByOrg);

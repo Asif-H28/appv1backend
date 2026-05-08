@@ -11,6 +11,12 @@ const {
   purgeExpiredNotices
 } = require('../controllers/noticeController');
 
+const auth = require('../middleware/auth');
+const checkOrgStatus = require('../middleware/checkOrgStatus');
+
+router.use(auth);
+router.use(checkOrgStatus);
+
 router.post('/create', uploadNoticeFiles.array('files', 5), createNotice);         // max 5 files
 router.get('/classroom/:classId', getNoticesByClassroom);                          // auto-purge + get
 router.get('/:noticeId', getNotice);

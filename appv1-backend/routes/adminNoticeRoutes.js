@@ -13,6 +13,12 @@ const {
   deleteAllAdminNotices
 } = require('../controllers/adminNoticeController');
 
+const auth = require('../middleware/auth');
+const checkOrgStatus = require('../middleware/checkOrgStatus');
+
+router.use(auth);
+router.use(checkOrgStatus);
+
 // ── ADMIN ────────────────────────────────────────────────
 router.post('/create',                uploadNoticeFiles.array('files', 5), createAdminNotice);
 router.get('/org/:orgId',             getAdminNoticesByOrg);
