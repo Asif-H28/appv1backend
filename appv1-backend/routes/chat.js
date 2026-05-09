@@ -3,6 +3,8 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
+const Teacher = require('../models/Teacher');
+const Organization = require('../models/Organization');
 
 // GET /chat/conversations/:userId → list conversations sorted by lastMessageAt desc
 router.get('/conversations/:userId', auth, async (req, res) => {
@@ -41,11 +43,41 @@ router.get('/messages/:conversationId', auth, async (req, res) => {
 // POST /chat/conversations → create or fetch existing direct conversation (idempotent)
 router.post('/conversations', auth, async (req, res) => {
   try {
-    const { recipientId, recipientName, recipientRole, senderName, senderRole } = req.body;
-    const senderId = req.user.userId || req.user.id;
+    let { recipientId, recipientName, recipientRole, senderName, senderRole } = req.body;
+    
+    // 1. Determine Sender ID (Handle Admin case where userId might be missing)
+    const senderId = req.user.userId || req.user.id || req.user.orgId;
     const orgId = req.user.orgId;
 
     if (!recipientId) return res.status(400).json({ error: 'Recipient ID is required' });
+
+    // 2. Fetch Sender info if missing
+    if (!senderName || !senderRole) {
+      if (req.user.role === 'admin') {
+        const org = await Organization.findOne({ orgId });
+        senderName = org ? org.name : 'Admin';
+        senderRole = 'admin';
+      } else {
+        const teacher = await Teacher.findOne({ teacherId: senderId });
+        senderName = teacher ? teacher.name : 'Teacher';
+        senderRole = 'teacher';
+      }
+    }
+
+    // 3. Fetch Recipient info if missing
+    if (!recipientName || !recipientRole) {
+      // Check if recipient is the Admin
+      if (recipientId === orgId) {
+        const org = await Organization.findOne({ orgId });
+        recipientName = org ? org.name : 'Admin';
+        recipientRole = 'admin';
+      } else {
+        const teacher = await Teacher.findOne({ teacherId: recipientId });
+        if (!teacher) return res.status(404).json({ error: 'Recipient not found' });
+        recipientName = teacher.name;
+        recipientRole = 'teacher';
+      }
+    }
 
     // conversationId for direct chat = [userId1, userId2].sort().join('_') + '_' + orgId
     const participantsIds = [senderId, recipientId].sort();
@@ -62,13 +94,17 @@ router.post('/conversations', auth, async (req, res) => {
           { userId: senderId, userName: senderName, role: senderRole },
           { userId: recipientId, userName: recipientName, role: recipientRole }
         ],
-        unreadCounts: new Map([[senderId, 0], [recipientId, 0]])
+        unreadCounts: new Map([
+          [senderId, 0],
+          [recipientId, 0]
+        ])
       });
       await conversation.save();
     }
 
     res.status(201).json(conversation);
   } catch (error) {
+    console.error('Chat Conversation Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
