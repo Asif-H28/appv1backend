@@ -150,7 +150,11 @@ router.post('/group', auth, async (req, res) => {
 router.put('/messages/read/:conversationId', auth, async (req, res) => {
   try {
     const { conversationId } = req.params;
-    const userId = req.user.userId || req.user.id;
+    const userId = req.user.userId || req.user.teacherId || req.user.id || (req.user.role === 'admin' ? req.user.orgId : null);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User identification failed from token' });
+    }
 
     // Update unread count in conversation
     const conversation = await Conversation.findById(conversationId);
