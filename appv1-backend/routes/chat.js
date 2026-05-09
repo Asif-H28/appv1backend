@@ -73,6 +73,8 @@ router.post('/conversations', auth, async (req, res) => {
   }
 });
 
+const { nanoid } = require('nanoid');
+
 // POST /chat/group → create group conversation
 router.post('/group', auth, async (req, res) => {
   try {
@@ -87,6 +89,7 @@ router.post('/group', auth, async (req, res) => {
     participants.forEach(p => unreadCounts.set(p.userId, 0));
 
     const conversation = new Conversation({
+      _id: `group_${nanoid(10)}`,
       orgId,
       type: 'group',
       groupName,

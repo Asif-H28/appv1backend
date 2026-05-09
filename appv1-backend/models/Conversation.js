@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 
 const ConversationSchema = new mongoose.Schema({
+  _id: {
+    type: String
+  },
   orgId: {
     type: String,
     required: true,
