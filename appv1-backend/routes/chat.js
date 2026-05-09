@@ -43,19 +43,12 @@ router.get('/messages/:conversationId', auth, async (req, res) => {
 // POST /chat/conversations → create or fetch existing direct conversation (idempotent)
 router.post('/conversations', auth, async (req, res) => {
   try {
-    console.log('--- Chat Debug ---');
-    console.log('User from token:', req.user);
-    console.log('Body:', req.body);
-
     let { recipientId, recipientName, recipientRole, senderName, senderRole } = req.body;
     
     // 1. Determine Sender ID
     // Check all possible fields in the token
-    const senderId = req.user.userId || req.user.id || req.user.orgId || (req.user.role === 'admin' ? req.user.orgId : null);
+    const senderId = req.user.userId || req.user.teacherId || req.user.id || (req.user.role === 'admin' ? req.user.orgId : null);
     const orgId = req.user.orgId;
-
-    console.log('Detected senderId:', senderId);
-    console.log('Detected orgId:', orgId);
 
     if (!senderId) {
       return res.status(401).json({ error: 'User identification failed from token' });
@@ -86,7 +79,6 @@ router.post('/conversations', auth, async (req, res) => {
       } else {
         const teacher = await Teacher.findOne({ teacherId: recipientId });
         if (!teacher) {
-          console.log('Recipient teacher not found:', recipientId);
           return res.status(404).json({ error: 'Recipient teacher not found' });
         }
         recipientName = teacher.name;
@@ -101,7 +93,6 @@ router.post('/conversations', auth, async (req, res) => {
     let conversation = await Conversation.findOne({ _id: conversationId });
 
     if (!conversation) {
-      console.log('Creating new conversation:', conversationId);
       conversation = new Conversation({
         _id: conversationId,
         orgId,
@@ -120,12 +111,11 @@ router.post('/conversations', auth, async (req, res) => {
 
     res.status(201).json(conversation);
   } catch (error) {
-    console.error('Chat Conversation Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-const { nanoid } = require('nanoid');
+const crypto = require('crypto');
 
 // POST /chat/group → create group conversation
 router.post('/group', auth, async (req, res) => {
@@ -141,7 +131,7 @@ router.post('/group', auth, async (req, res) => {
     participants.forEach(p => unreadCounts.set(p.userId, 0));
 
     const conversation = new Conversation({
-      _id: `group_${nanoid(10)}`,
+      _id: `group_${crypto.randomBytes(5).toString('hex').toUpperCase()}`,
       orgId,
       type: 'group',
       groupName,

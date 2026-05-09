@@ -1,7 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const serverless = require('serverless-http');
-require('./config/firebase');   // ← ADD THIS at top
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -18,10 +16,12 @@ const io = new Server(server, {
   }
 });
 
+require('./sockets/chatSocket')(io);
+
 // Attach io to request for use in routes if needed
 app.set('io', io);
 
-// ✅ Trust Render's reverse proxy — required for express-rate-limit to work correctly
+// ✅ Trust Render's reverse proxy
 app.set('trust proxy', 1);
 
 // Middleware
@@ -132,8 +132,11 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Initialize Socket Handler
-require('./sockets/chatSocket')(io);
+let handler;
+if (process.env.NODE_ENV === 'lambda') {
+  const serverless = require('serverless-http');
+  handler = serverless(app);
+}
 
 if (process.env.NODE_ENV !== 'lambda') {
   const PORT = process.env.PORT || 5000;
@@ -144,6 +147,5 @@ if (process.env.NODE_ENV !== 'lambda') {
   });
 }
 
-const handler = serverless(app);
 module.exports = { app, server, io, handler };
 

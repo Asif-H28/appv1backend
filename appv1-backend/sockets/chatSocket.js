@@ -11,43 +11,36 @@ module.exports = (io) => {
   // Middleware: Validate JWT on every socket connection
   io.use((socket, next) => {
     try {
-      console.log('--- Socket Auth Handshake ---');
       const auth = socket.handshake.auth;
       const headers = socket.handshake.headers;
       
       const token = auth?.token || headers?.token || socket.handshake.query?.token;
       
       if (!token) {
-        console.error('❌ Socket Auth Failed: No token provided');
         return next(new Error('Authentication error: Token required'));
       }
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log('✅ Socket Auth Success for:', decoded.userId || decoded.orgId);
       socket.user = decoded; // Contains orgId, userId, role
       next();
     } catch (err) {
-      console.error('❌ Socket Auth Error:', err.message);
       return next(new Error('Authentication error: Invalid token'));
     }
   });
 
   io.on('connection', (socket) => {
     try {
-      const { userId, orgId, role } = socket.user || {};
-      const actualUserId = userId || socket.user?.id || orgId;
+      const { userId, teacherId, orgId, role } = socket.user || {};
+      const actualUserId = userId || teacherId || socket.user?.id || orgId;
 
       if (!actualUserId || !orgId) {
-        console.error('❌ Connection rejected: Missing userId or orgId in token');
         return socket.disconnect();
       }
-
-      console.log(`🔌 User connected: ${actualUserId} (${role}) | Socket: ${socket.id}`);
 
       // Scope user to their organization room
       socket.join(`org_${orgId}`);
 
-      // user_online → store userId+socketId, broadcast online_status
+      // user_online
       socket.on('user_online', (data) => {
         onlineUsers.set(actualUserId, socket.id);
         io.to(`org_${orgId}`).emit('online_status', {
@@ -57,24 +50,25 @@ module.exports = (io) => {
         });
       });
 
-      // join_conversation → socket.join(conversationId)
+      // join_conversation
       socket.on('join_conversation', (conversationId) => {
         socket.join(conversationId);
-        console.log(`👥 User ${actualUserId} joined conversation: ${conversationId}`);
       });
 
       // send_message
       socket.on('send_message', async (data) => {
         try {
-          const { conversationId, text, mediaUrl, senderName, senderRole } = data;
+          const { conversationId, mediaUrl, senderName } = data;
+          const text = data.text || data.content; // Map Flutter 'content' to 'text'
+          const senderRole = data.senderRole || socket.user?.role || 'user';
 
           // 1. Save Message to DB
           const newMessage = new Message({
             conversationId,
             senderId: actualUserId,
-            senderName,
+            senderName: senderName || 'Anonymous',
             senderRole,
-            text,
+            text: text || '',
             mediaUrl,
             status: 'sent'
           });
@@ -110,7 +104,6 @@ module.exports = (io) => {
           });
 
         } catch (error) {
-          console.error('❌ Error sending message:', error);
           socket.emit('error', { message: 'Failed to send message' });
         }
       });
@@ -140,7 +133,6 @@ module.exports = (io) => {
           await Message.findByIdAndUpdate(messageId, { status: 'delivered' });
           io.to(conversationId).emit('status_update', { messageId, status: 'delivered' });
         } catch (err) {
-          console.error('❌ Error updating delivery status:', err);
         }
       });
 
@@ -166,14 +158,14 @@ module.exports = (io) => {
         }
       });
 
-      socket.on('disconnect', () => {
+      socket.on('disconnect', (reason) => {
         onlineUsers.delete(actualUserId);
         io.to(`org_${orgId}`).emit('online_status', {
           userId: actualUserId,
           isOnline: false,
           lastSeen: new Date()
         });
-        console.log(`🔌 User disconnected: ${actualUserId}`);
+        console.log(`🔌 User disconnected: ${actualUserId} | Reason: ${reason}`);
       });
     } catch (connectionError) {
       console.error('❌ Socket Connection Handler Error:', connectionError);
