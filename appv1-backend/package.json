@@ -26,7 +26,8 @@
     "multer-storage-cloudinary": "^4.0.0",
     "nanoid": "^5.1.7",
     "nodemailer": "^8.0.7",
-    "serverless-http": "^4.0.0"
+    "serverless-http": "^4.0.0",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.14",

@@ -6,7 +6,20 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 
+const http = require('http');
+const { Server } = require('socket.io');
+
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
+// Attach io to request for use in routes if needed
+app.set('io', io);
 
 // ✅ Trust Render's reverse proxy — required for express-rate-limit to work correctly
 app.set('trust proxy', 1);
@@ -42,7 +55,7 @@ app.use(async (req, res, next) => {
 // Test routes
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Appv1 Backend Running!', 
+    message: 'Appv1 Backend Running with Socket.IO!', 
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV || 'development'
   });
@@ -89,6 +102,9 @@ app.use('/api/classroom', require('./routes/classroom'));
 // Student routes
 app.use('/api/student', require('./routes/student'));
 
+// Chat routes
+app.use('/api/chat', require('./routes/chat'));
+
 // Feature routes
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/notice', require('./routes/notice'));
@@ -116,13 +132,18 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
+// Initialize Socket Handler
+require('./sockets/chatSocket')(io);
+
 if (process.env.NODE_ENV !== 'lambda') {
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📱 Test: http://localhost:${PORT}/`);
     console.log(`🔍 DB Test: http://localhost:${PORT}/test-db`);
   });
 }
 
-module.exports.handler = serverless(app);
+const handler = serverless(app);
+module.exports = { app, server, io, handler };
+
