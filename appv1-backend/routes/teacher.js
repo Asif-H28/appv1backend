@@ -9,7 +9,8 @@ const {
   sendJoinRequest,
   getJoinRequests,
   approveJoinRequest,
-  rejectJoinRequest
+  rejectJoinRequest,
+  getTeacherList
 } = require('../controllers/teacherController');
 
 const auth = require('../middleware/auth');
@@ -25,6 +26,7 @@ router.use(auth);
 router.use(checkOrgStatus);
 
 // Profile
+router.get('/list/:orgId', getTeacherList);
 router.get('/org/:orgId', getOrgTeachers);
 router.get('/:teacherId/profile', getTeacherProfile);
 router.put('/:teacherId/profile', updateTeacherProfile);

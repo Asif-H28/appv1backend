@@ -346,3 +346,48 @@ exports.rejectJoinRequest = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// GET TEACHER LIST FOR CHAT (Profiles)
+exports.getTeacherList = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    
+    // 1. Fetch Organization (Admin) details
+    const organization = await Organization.findOne({ orgId });
+    
+    // 2. Fetch verified teachers for the specific organization
+    const teachers = await Teacher.find({ orgId, verified: true }).select('teacherId name email gender address phoneNumber');
+
+    const profileList = [];
+    
+    // Add Admin/Org if exists
+    if (organization) {
+      profileList.push({
+        userId: organization.orgId,
+        name: organization.name + ' (Admin)',
+        email: organization.adminEmail,
+        gender: 'N/A',
+        role: 'admin'
+      });
+    }
+
+    // Add Teachers
+    teachers.forEach(t => {
+      profileList.push({
+        userId: t.teacherId,
+        name: t.name,
+        email: t.email,
+        gender: t.gender || 'N/A',
+        role: 'teacher'
+      });
+    });
+
+    res.json({
+      success: true,
+      count: profileList.length,
+      teachers: profileList // named 'teachers' to match existing frontend expectations if any, but contains all profiles
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
