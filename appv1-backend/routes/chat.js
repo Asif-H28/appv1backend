@@ -43,11 +43,23 @@ router.get('/messages/:conversationId', auth, async (req, res) => {
 // POST /chat/conversations → create or fetch existing direct conversation (idempotent)
 router.post('/conversations', auth, async (req, res) => {
   try {
+    console.log('--- Chat Debug ---');
+    console.log('User from token:', req.user);
+    console.log('Body:', req.body);
+
     let { recipientId, recipientName, recipientRole, senderName, senderRole } = req.body;
     
-    // 1. Determine Sender ID (Handle Admin case where userId might be missing)
-    const senderId = req.user.userId || req.user.id || req.user.orgId;
+    // 1. Determine Sender ID
+    // Check all possible fields in the token
+    const senderId = req.user.userId || req.user.id || req.user.orgId || (req.user.role === 'admin' ? req.user.orgId : null);
     const orgId = req.user.orgId;
+
+    console.log('Detected senderId:', senderId);
+    console.log('Detected orgId:', orgId);
+
+    if (!senderId) {
+      return res.status(401).json({ error: 'User identification failed from token' });
+    }
 
     if (!recipientId) return res.status(400).json({ error: 'Recipient ID is required' });
 
@@ -73,7 +85,10 @@ router.post('/conversations', auth, async (req, res) => {
         recipientRole = 'admin';
       } else {
         const teacher = await Teacher.findOne({ teacherId: recipientId });
-        if (!teacher) return res.status(404).json({ error: 'Recipient not found' });
+        if (!teacher) {
+          console.log('Recipient teacher not found:', recipientId);
+          return res.status(404).json({ error: 'Recipient teacher not found' });
+        }
         recipientName = teacher.name;
         recipientRole = 'teacher';
       }
@@ -86,6 +101,7 @@ router.post('/conversations', auth, async (req, res) => {
     let conversation = await Conversation.findOne({ _id: conversationId });
 
     if (!conversation) {
+      console.log('Creating new conversation:', conversationId);
       conversation = new Conversation({
         _id: conversationId,
         orgId,
@@ -95,8 +111,8 @@ router.post('/conversations', auth, async (req, res) => {
           { userId: recipientId, userName: recipientName, role: recipientRole }
         ],
         unreadCounts: new Map([
-          [senderId, 0],
-          [recipientId, 0]
+          [String(senderId), 0],
+          [String(recipientId), 0]
         ])
       });
       await conversation.save();
