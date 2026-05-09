@@ -3,6 +3,7 @@ const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 const Teacher = require('../models/Teacher');
 const Organization = require('../models/Organization');
+const Student = require('../models/Student');
 const admin = require('../config/firebase');
 
 const onlineUsers = new Map(); // userId → socketId
@@ -93,15 +94,18 @@ module.exports = (io) => {
           io.to(conversationId).emit('new_message', newMessage);
 
           // 5. Trigger FCM for offline recipients
-          recipients.forEach(async (recipient) => {
-            if (!onlineUsers.has(recipient.userId)) {
-              sendPushNotification(recipient.userId, recipient.role, {
-                title: senderName,
-                body: text || 'Sent a media file',
+          for (const recipient of recipients) {
+            const isOnline = onlineUsers.has(recipient.userId);
+            if (!isOnline) {
+              await sendPushNotification(recipient.userId, recipient.role, {
+                title: senderName || 'New Message',
+                body: text || 'Sent an attachment',
                 conversationId
               });
+            } else {
+              console.log(`ℹ️ Skipping push for ${recipient.userId}: User is online via socket`);
             }
-          });
+          }
 
         } catch (error) {
           socket.emit('error', { message: 'Failed to send message' });
@@ -179,9 +183,11 @@ async function sendPushNotification(userId, role, payload) {
   try {
     let user;
     if (role === 'admin') {
-      user = await Organization.findOne({ orgId: userId }); // Assuming userId is orgId for admins
+      user = await Organization.findOne({ orgId: userId });
     } else if (role === 'teacher') {
       user = await Teacher.findOne({ teacherId: userId });
+    } else if (role === 'student') {
+      user = await Student.findOne({ studentId: userId });
     }
 
     if (user && user.fcmToken) {
@@ -199,6 +205,8 @@ async function sendPushNotification(userId, role, payload) {
 
       await admin.messaging().send(message);
       console.log(`🔔 Push notification sent to ${userId}`);
+    } else {
+      console.log(`⚠️ Push skipped for ${userId}: ${!user ? 'User not found' : 'No FCM token'}`);
     }
   } catch (error) {
     console.error('❌ Error sending FCM:', error);

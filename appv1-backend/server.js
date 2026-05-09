@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+require('./config/firebase');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
