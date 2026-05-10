@@ -178,4 +178,17 @@ router.put('/messages/read/:conversationId', auth, async (req, res) => {
   }
 });
 
+const onlineTracker = require('../utils/onlineTracker');
+
+// GET /chat/status/:userId → check if a user is online
+router.get('/status/:userId', auth, (req, res) => {
+  try {
+    const { userId } = req.params;
+    const isOnline = onlineTracker.isUserOnline(userId);
+    res.json({ userId, isOnline });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

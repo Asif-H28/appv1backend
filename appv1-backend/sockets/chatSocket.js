@@ -6,7 +6,7 @@ const Organization = require('../models/Organization');
 const Student = require('../models/Student');
 const admin = require('../config/firebase');
 
-const onlineUsers = new Map(); // userId → socketId
+const onlineTracker = require('../utils/onlineTracker');
 
 module.exports = (io) => {
   // Middleware: Validate JWT on every socket connection
@@ -43,7 +43,7 @@ module.exports = (io) => {
 
       // user_online
       socket.on('user_online', (data) => {
-        onlineUsers.set(actualUserId, socket.id);
+        onlineTracker.setOnline(actualUserId, socket.id);
         io.to(`org_${orgId}`).emit('online_status', {
           userId: actualUserId,
           isOnline: true,
@@ -93,18 +93,13 @@ module.exports = (io) => {
           // 4. Emit new_message to conversation room
           io.to(conversationId).emit('new_message', newMessage);
 
-          // 5. Trigger FCM for offline recipients
+          // 5. Trigger FCM for all recipients (even if online)
           for (const recipient of recipients) {
-            const isOnline = onlineUsers.has(recipient.userId);
-            if (!isOnline) {
-              await sendPushNotification(recipient.userId, recipient.role, {
-                title: senderName || 'New Message',
-                body: text || 'Sent an attachment',
-                conversationId
-              });
-            } else {
-              console.log(`ℹ️ Skipping push for ${recipient.userId}: User is online via socket`);
-            }
+            await sendPushNotification(recipient.userId, recipient.role, {
+              title: senderName || 'New Message',
+              body: text || 'Sent an attachment',
+              conversationId
+            });
           }
 
         } catch (error) {
@@ -163,7 +158,7 @@ module.exports = (io) => {
       });
 
       socket.on('disconnect', (reason) => {
-        onlineUsers.delete(actualUserId);
+        onlineTracker.setOffline(actualUserId);
         io.to(`org_${orgId}`).emit('online_status', {
           userId: actualUserId,
           isOnline: false,
