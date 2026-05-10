@@ -193,7 +193,8 @@ async function sendPushNotification(userId, role, payload) {
         },
         data: {
           conversationId: payload.conversationId,
-          type: 'chat'
+          type: 'chat',
+          chatnotification: 'true'
         },
         token: user.fcmToken
       };
