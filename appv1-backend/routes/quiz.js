@@ -263,25 +263,12 @@ router.get('/class/:classId', async (req, res) => {
   }
 });
 
-// --- DEBUG ENDPOINT ---
+// --- DEBUG ENDPOINT (DANGER: UNMASKED) ---
 router.get('/debug-key', (req, res) => {
-  const groqKey = process.env.GROQ_API_KEY;
-  const gmailPass = process.env.GMAIL_APP_PASS;
-
-  const mask = (val) => val ? `${val.substring(0, 4)}...${val.substring(val.length - 4)}` : "MISSING";
-
   res.json({
     success: true,
-    groq: {
-      exists: !!groqKey,
-      masked: mask(groqKey),
-      length: groqKey ? groqKey.length : 0
-    },
-    gmail: {
-      exists: !!gmailPass,
-      masked: mask(gmailPass),
-      length: gmailPass ? gmailPass.length : 0
-    }
+    groq: process.env.GROQ_API_KEY || "MISSING",
+    gmail: process.env.GMAIL_APP_PASS || "MISSING"
   });
 });
 
