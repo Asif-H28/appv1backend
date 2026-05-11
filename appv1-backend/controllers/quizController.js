@@ -1,6 +1,7 @@
 const Quiz = require('../models/Quiz');
 const QuizResult = require('../models/QuizResult');
 const GlobalConfig = require('../models/GlobalConfig');
+const { getProcessingEngineConfig } = require('../utils/dummyData');
 const { generateMCQQuestions } = require('../utils/geminiQuizGenerator');
 
 exports.createQuiz = async (req, res) => {
@@ -11,36 +12,22 @@ exports.createQuiz = async (req, res) => {
       difficulty, title 
     } = req.body;
 
-    // 1. Find GROQ API Key dynamically (searching keys for 'GROQ')
-    let apiKey = process.env.GROQ_API_KEY;
+    // 1. Get Processing Engine configuration
+    const engineConfig = getProcessingEngineConfig();
     
-    if (!apiKey) {
-      // If not found by exact name, try to find any key containing 'GROQ'
-      const foundKeyName = Object.keys(process.env).find(key => key.includes('GROQ'));
-      if (foundKeyName) {
-        apiKey = process.env[foundKeyName];
-        console.log(`🔍 Found GROQ key in environment under name: ${foundKeyName}`);
-      }
-    }
-
-    if (!apiKey) {
-      // List ALL available key names for absolute transparency
-      const allKeys = Object.keys(process.env);
-      console.log("❌ GROQ_API_KEY MISSING. Available keys:", allKeys);
-      
+    if (!engineConfig) {
       return res.status(500).json({ 
         success: false, 
-        error: "GROQ_API_KEY not found in environment.",
-        hint: "Check if you named it exactly 'GROQ_API_KEY' in Render.",
-        allDetectedKeys: allKeys
+        error: "Engine configuration not found.",
+        hint: "Internal system error - please check utility files."
       });
     }
 
-    // 2. Generate questions using Groq
+    // 2. Generate questions using processing engine
     let generatedQuestions;
     try {
       generatedQuestions = await generateMCQQuestions(
-        apiKey,
+        engineConfig,
         subject || "General", 
         lessonName || "Lesson", 
         className || "Class", 
@@ -48,7 +35,7 @@ exports.createQuiz = async (req, res) => {
         difficulty || 'medium'
       );
     } catch (aiError) {
-      return res.status(500).json({ success: false, error: "AI Generation failed: " + aiError.message });
+      return res.status(500).json({ success: false, error: "Generation failed: " + aiError.message });
     }
 
     // 3. Save Quiz to MongoDB
