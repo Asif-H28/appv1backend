@@ -24,15 +24,15 @@ exports.createQuiz = async (req, res) => {
     }
 
     if (!apiKey) {
-      // List available keys (names only) for easier debugging if it fails
-      const availableKeys = Object.keys(process.env).filter(k => 
-        k.includes('MONGODB') || k.includes('JWT') || k.includes('PORT') || k.includes('NODE')
-      );
+      // List ALL available key names for absolute transparency
+      const allKeys = Object.keys(process.env);
+      console.log("❌ GROQ_API_KEY MISSING. Available keys:", allKeys);
+      
       return res.status(500).json({ 
         success: false, 
-        error: "GROQ_API_KEY not found.",
-        hint: "Check your Render Environment variables.",
-        detectedSystemKeys: availableKeys
+        error: "GROQ_API_KEY not found in environment.",
+        hint: "Check if you named it exactly 'GROQ_API_KEY' in Render.",
+        allDetectedKeys: allKeys
       });
     }
 
