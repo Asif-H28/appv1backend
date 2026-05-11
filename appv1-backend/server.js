@@ -128,6 +128,9 @@ app.use('/api/super-admin/app', require('./routes/superAdminApp'));
 // License Key Request Routes
 app.use('/api/license-request', require('./routes/licenseRequestRoutes'));
 
+// Quiz Routes
+app.use('/api/quiz', require('./routes/quiz'));
+
 // 404 handler (FIXED syntax)
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
