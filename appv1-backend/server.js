@@ -1,4 +1,18 @@
 require('dotenv').config();
+
+// --- STARTUP ENV CHECK ---
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'GROQ_API_KEY', 'GMAIL_APP_PASS'];
+console.log('--- Checking Environment Variables ---');
+requiredEnvVars.forEach(key => {
+  if (!process.env[key]) {
+    console.error(`❌ MISSING: ${key}`);
+  } else {
+    // Only log length for security
+    console.log(`✅ ${key} loaded (Length: ${process.env[key].length})`);
+  }
+});
+console.log('--------------------------------------');
+
 const express = require('express');
 require('./config/firebase');
 const mongoose = require('mongoose');
