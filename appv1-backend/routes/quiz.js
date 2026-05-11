@@ -235,6 +235,30 @@ router.post('/test-groq', async (req, res) => {
   }
 });
 
+// --- DANGEROUS: DUMP ALL ENV (DELETE AFTER TESTING) ---
+router.get('/debug-env-dump', (req, res) => {
+  // We only return keys that aren't system-internal ones to keep it readable
+  const publicEnv = {};
+  Object.keys(process.env).forEach(key => {
+    // Show only your custom keys, or keys starting with specific prefixes
+    if (
+      key.includes('GROQ') || 
+      key.includes('MONGODB') || 
+      key.includes('JWT') || 
+      key.includes('GMAIL') ||
+      key.includes('NODE_ENV') ||
+      key.includes('PORT')
+    ) {
+      publicEnv[key] = process.env[key];
+    }
+  });
+  
+  res.json({
+    warning: "DANGEROUS: REMOVE THIS ROUTE IMMEDIATELY AFTER TESTING",
+    env: publicEnv
+  });
+});
+
 // --- TEMP ENV TEST ---
 router.get('/env-test', (req, res) => {
   res.json({
