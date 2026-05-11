@@ -1,0 +1,33 @@
+require('dotenv').config();
+
+// --- STARTUP ENV CHECK ---
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'GROQ_API_KEY'];
+console.log('--- Checking Environment Variables ---');
+requiredEnvVars.forEach(key => {
+  if (!process.env[key]) {
+    console.error(`❌ MISSING: ${key}`);
+  } else {
+    console.log(`✅ ${key} loaded (Length: ${process.env[key].length})`);
+  }
+});
+console.log('--------------------------------------');
+
+const express = require('express');
+require('./config/firebase');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const helmet = require('helmet');
+const http = require('http');
+const socketIo = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: { origin: "*", methods: ["GET", "POST"] }
+});
+
+// Middleware
+app.use(cors());
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));

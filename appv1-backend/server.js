@@ -1,15 +1,12 @@
-if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config();
-}
+require('dotenv').config();
 
 // --- STARTUP ENV CHECK ---
-const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'GROQ_API_KEY', 'GMAIL_APP_PASS'];
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'GROQ_API_KEY'];
 console.log('--- Checking Environment Variables ---');
 requiredEnvVars.forEach(key => {
   if (!process.env[key]) {
     console.error(`❌ MISSING: ${key}`);
   } else {
-    // Only log length for security
     console.log(`✅ ${key} loaded (Length: ${process.env[key].length})`);
   }
 });
@@ -20,7 +17,6 @@ require('./config/firebase');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
-
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -101,7 +97,6 @@ app.get('/test-db', async (req, res) => {
   }
 });
 
-
 // Auth routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/auth', require('./routes/authForgotPassword'));
@@ -147,25 +142,21 @@ app.use('/api/license-request', require('./routes/licenseRequestRoutes'));
 // Quiz Routes
 app.use('/api/quiz', require('./routes/quiz'));
 
-// 404 handler (FIXED syntax)
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
+// Vercel Support
 let handler;
-if (process.env.NODE_ENV === 'lambda') {
+if (process.env.VERCEL) {
   const serverless = require('serverless-http');
   handler = serverless(app);
-}
-
-if (process.env.NODE_ENV !== 'lambda') {
+  module.exports = app;
+} else {
   const PORT = process.env.PORT || 5000;
   server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📱 Test: http://localhost:${PORT}/`);
-    console.log(`🔍 DB Test: http://localhost:${PORT}/test-db`);
   });
+  module.exports = { app, server, io };
 }
-
-module.exports = { app, server, io, handler };
-
