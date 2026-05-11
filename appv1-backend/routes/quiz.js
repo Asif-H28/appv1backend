@@ -294,4 +294,33 @@ router.delete('/:quizId', async (req, res) => {
   }
 });
 
+// 12. UPDATE QUIZ (Teacher can edit questions/title/etc)
+router.patch('/:quizId', async (req, res) => {
+  try {
+    const { teacherId, title, questions, durationMinutes, difficulty, isActive } = req.body;
+    const quiz = await Quiz.findById(req.params.quizId);
+    if (!quiz) return res.status(404).json({ success: false, error: "Quiz not found" });
+
+    // Validate ownership
+    if (quiz.teacherId !== teacherId) {
+      return res.status(403).json({ success: false, error: "Unauthorized to edit this quiz" });
+    }
+
+    // Update fields if provided
+    if (title) quiz.title = title;
+    if (questions) {
+      quiz.questions = questions;
+      quiz.totalQuestions = questions.length;
+    }
+    if (durationMinutes) quiz.durationMinutes = durationMinutes;
+    if (difficulty) quiz.difficulty = difficulty;
+    if (isActive !== undefined) quiz.isActive = isActive;
+
+    await quiz.save();
+    res.json({ success: true, message: "Quiz updated successfully", quiz });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
