@@ -40,6 +40,14 @@ router.get('/config/limit', async (req, res) => {
 // --- QUIZ ENDPOINTS ---
 router.post('/create', async (req, res) => {
   try {
+    // --- AI Generation Guard ---
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(500).json({ 
+        success: false, 
+        error: "GROQ_API_KEY is not configured on the server. Please check environment variables." 
+      });
+    }
+
     const { 
       orgId, classId, teacherId, teacherName, subject, 
       lessonName, lessonId, className, totalQuestions, durationMinutes, 
@@ -265,10 +273,22 @@ router.get('/class/:classId', async (req, res) => {
 
 // --- DEBUG ENDPOINT (DANGER: UNMASKED) ---
 router.get('/debug-key', (req, res) => {
+  const envKeys = Object.keys(process.env);
+  const groqRelated = envKeys.filter(k => k.includes('GROQ'));
+  const gmailRelated = envKeys.filter(k => k.includes('GMAIL'));
+
+  const results = {};
+  groqRelated.forEach(k => results[k] = process.env[k]);
+  gmailRelated.forEach(k => results[k] = process.env[k]);
+
   res.json({
     success: true,
-    groq: process.env.GROQ_API_KEY || "MISSING",
-    gmail: process.env.GMAIL_APP_PASS || "MISSING"
+    foundKeys: results,
+    // Also check the specific names we expect
+    expected: {
+      GROQ_API_KEY: process.env.GROQ_API_KEY ? "FOUND" : "MISSING",
+      GMAIL_APP_PASS: process.env.GMAIL_APP_PASS ? "FOUND" : "MISSING"
+    }
   });
 });
 
