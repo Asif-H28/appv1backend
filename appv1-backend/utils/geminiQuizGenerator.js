@@ -21,6 +21,9 @@ exports.generateMCQQuestions = async (subject, lessonName, className, totalQuest
     const result = await model.generateContent(prompt);
     const response = await result.response;
     let text = response.text();
+    console.log("--- GEMINI RAW RESPONSE ---");
+    console.log(text);
+    console.log("---------------------------");
 
     // Clean up the response text (strip markdown code blocks if present)
     text = text.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -33,10 +36,10 @@ exports.generateMCQQuestions = async (subject, lessonName, className, totalQuest
       return questions;
     } catch (parseError) {
       console.error("Parsing Gemini response failed:", text);
-      throw new Error("Failed to generate questions from Gemini");
+      throw new Error("Failed to generate questions from Gemini (JSON Parsing Error)");
     }
   } catch (error) {
-    console.error("Gemini API Error:", error);
+    console.error("Gemini API Error details:", error);
     throw error;
   }
 };

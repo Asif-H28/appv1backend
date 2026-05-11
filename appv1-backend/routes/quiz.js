@@ -97,7 +97,7 @@ router.post('/create', async (req, res) => {
         totalQuestions || 5, difficulty || 'medium'
       );
     } catch (geminiError) {
-      return res.status(500).json({ success: false, error: "Failed to generate questions. Please try again." });
+      return res.status(500).json({ success: false, error: geminiError.message || "Failed to generate questions. Please try again." });
     }
 
     // e. Save Quiz to MongoDB
