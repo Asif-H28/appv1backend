@@ -263,6 +263,23 @@ router.get('/class/:classId', async (req, res) => {
   }
 });
 
+// TEMP: Test Groq directly
+router.post('/test-groq', async (req, res) => {
+  try {
+    const { generateMCQQuestions } = require('../utils/geminiQuizGenerator');
+    // Simple test data
+    const questions = await generateMCQQuestions('Math', 'Addition', 'Class 5', 2, 'easy');
+    res.json({ success: true, count: questions.length, sample: questions[0] });
+  } catch (err) {
+    res.json({ 
+      success: false, 
+      errorMessage: err.message,
+      errorName: err.name,
+      errorStack: err.stack?.split('\n').slice(0, 5)
+    });
+  }
+});
+
 // --- TEMP ENV TEST ---
 router.get('/env-test', (req, res) => {
   res.json({
