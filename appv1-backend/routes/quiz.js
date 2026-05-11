@@ -46,61 +46,35 @@ router.post('/create', async (req, res) => {
       difficulty, title 
     } = req.body;
 
-    // a. Validate required fields
+    // 1. Basic field validation
     if (!orgId || !classId || !teacherId || !subject || !lessonName || !lessonId || !title) {
-      return res.status(400).json({ success: false, error: "Missing required fields" });
+      return res.status(400).json({ success: false, error: "Missing required fields (orgId, classId, teacherId, subject, lessonName, lessonId, title)" });
     }
 
-    // b. Run the 4-step lesson completion validation
-    // Step 1: Query Classroom
-    const classroom = await Classroom.findOne({ classId });
-    if (!classroom) return res.status(400).json({ success: false, error: "Classroom not found" });
-
-    // Step 2: Find subject
-    const subjectObj = classroom.subjects.find(
-      s => s.name.toLowerCase() === subject.toLowerCase()
-    );
-    if (!subjectObj) return res.status(400).json({ success: false, error: "Subject not found in this classroom" });
-
-    // Step 3: Find lesson by ID
-    const lessonObj = subjectObj.lessons.find(
-      l => l._id.toString() === lessonId
-    );
-    if (!lessonObj) return res.status(400).json({ success: false, error: "Lesson ID not found in this subject" });
-
-    // Step 4: Check completion
-    if (!lessonObj.completed) {
-      return res.status(400).json({ 
-        success: false, 
-        error: "Cannot create quiz. Lesson has not been marked as completed yet." 
-      });
-    }
-
-    // c. Check creation limit using GlobalConfig
+    // 2. Check creation limit
     let config = await GlobalConfig.findOne({ key: 'maxQuizzesPerLesson' });
     const maxLimit = config ? parseInt(config.value) : 3;
 
-    // Count based on lessonId for reliable tracking across renames
-    const quizCount = await Quiz.countDocuments({ classId, lessonId, teacherId });
+    const quizCount = await Quiz.countDocuments({ classId, lessonId, teacherId, isActive: true });
     if (quizCount >= maxLimit) {
       return res.status(400).json({ 
         success: false, 
-        error: `Limit reached. You can only create up to ${maxLimit} quizzes for this specific lesson.` 
+        error: `Limit reached. You can only create up to ${maxLimit} quizzes for this lesson.` 
       });
     }
 
-    // d. Generate questions from Gemini
+    // 3. Generate questions using Groq
     let generatedQuestions;
     try {
       generatedQuestions = await generateMCQQuestions(
-        subject, lessonName, className || classroom.className, 
+        subject, lessonName, className || "Class", 
         totalQuestions || 5, difficulty || 'medium'
       );
-    } catch (geminiError) {
-      return res.status(500).json({ success: false, error: geminiError.message || "Failed to generate questions. Please try again." });
+    } catch (aiError) {
+      return res.status(500).json({ success: false, error: aiError.message || "AI Generation failed" });
     }
 
-    // e. Save Quiz to MongoDB
+    // 4. Save Quiz to MongoDB
     const quiz = new Quiz({
       orgId,
       classId,
@@ -109,7 +83,7 @@ router.post('/create', async (req, res) => {
       subject,
       lessonName,
       lessonId,
-      className: className || classroom.className,
+      className: className || "Class",
       title,
       questions: generatedQuestions,
       totalQuestions: generatedQuestions.length,
@@ -119,10 +93,10 @@ router.post('/create', async (req, res) => {
 
     await quiz.save();
 
-    // f. Return response
     res.status(201).json({
       success: true,
       message: "Quiz created successfully",
+      quizId: quiz.quizId,
       quiz: {
         _id: quiz._id,
         title: quiz.title,
@@ -136,8 +110,7 @@ router.post('/create', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: error.message,
-      step: 'create-route-main-catch',
-      stack: error.stack?.split('\n').slice(0, 4)
+      step: 'simple-create-route-catch'
     });
   }
 });
