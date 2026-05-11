@@ -4,18 +4,50 @@ const Quiz = require('../models/Quiz');
 const QuizResult = require('../models/QuizResult');
 const Classroom = require('../models/Classroom');
 const { generateMCQQuestions } = require('../utils/geminiQuizGenerator');
+const superAdminAuth = require('../middleware/superAdminAuth');
+const GlobalConfig = require('../models/GlobalConfig');
 
-// 1. CREATE QUIZ
+// --- CONFIG ENDPOINTS (Super Admin) ---
+
+// 10. UPDATE QUIZ LIMIT (Super Admin Only)
+router.post('/config/update-limit', superAdminAuth, async (req, res) => {
+  try {
+    const { limit } = req.body;
+    if (limit === undefined) return res.status(400).json({ success: false, error: "Limit is required" });
+
+    await GlobalConfig.findOneAndUpdate(
+      { key: 'maxQuizzesPerLesson' },
+      { value: limit, description: 'Maximum quizzes a teacher can create per lesson' },
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true, message: `Max quizzes per lesson updated to ${limit}` });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 11. GET CURRENT QUIZ LIMIT
+router.get('/config/limit', async (req, res) => {
+  try {
+    const config = await GlobalConfig.findOne({ key: 'maxQuizzesPerLesson' });
+    res.json({ success: true, limit: config ? config.value : 3 });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// --- QUIZ ENDPOINTS ---
 router.post('/create', async (req, res) => {
   try {
     const { 
       orgId, classId, teacherId, teacherName, subject, 
-      lessonName, className, totalQuestions, durationMinutes, 
+      lessonName, lessonId, className, totalQuestions, durationMinutes, 
       difficulty, title 
     } = req.body;
 
     // a. Validate required fields
-    if (!orgId || !classId || !teacherId || !subject || !lessonName || !title) {
+    if (!orgId || !classId || !teacherId || !subject || !lessonName || !lessonId || !title) {
       return res.status(400).json({ success: false, error: "Missing required fields" });
     }
 
@@ -30,11 +62,11 @@ router.post('/create', async (req, res) => {
     );
     if (!subjectObj) return res.status(400).json({ success: false, error: "Subject not found in this classroom" });
 
-    // Step 3: Find lesson
+    // Step 3: Find lesson by ID
     const lessonObj = subjectObj.lessons.find(
-      l => l.name.toLowerCase() === lessonName.toLowerCase()
+      l => l._id.toString() === lessonId
     );
-    if (!lessonObj) return res.status(400).json({ success: false, error: "Lesson not found in this subject" });
+    if (!lessonObj) return res.status(400).json({ success: false, error: "Lesson ID not found in this subject" });
 
     // Step 4: Check completion
     if (!lessonObj.completed) {
@@ -44,10 +76,17 @@ router.post('/create', async (req, res) => {
       });
     }
 
-    // c. Check for duplicate active quiz
-    const existingQuiz = await Quiz.findOne({ classId, subject, lessonName, isActive: true });
-    if (existingQuiz) {
-      return res.status(400).json({ success: false, error: "Quiz already exists for this lesson" });
+    // c. Check creation limit using GlobalConfig
+    let config = await GlobalConfig.findOne({ key: 'maxQuizzesPerLesson' });
+    const maxLimit = config ? parseInt(config.value) : 3;
+
+    // Count based on lessonId for reliable tracking across renames
+    const quizCount = await Quiz.countDocuments({ classId, lessonId, teacherId });
+    if (quizCount >= maxLimit) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Limit reached. You can only create up to ${maxLimit} quizzes for this specific lesson.` 
+      });
     }
 
     // d. Generate questions from Gemini
@@ -69,6 +108,7 @@ router.post('/create', async (req, res) => {
       teacherName,
       subject,
       lessonName,
+      lessonId,
       className: className || classroom.className,
       title,
       questions: generatedQuestions,

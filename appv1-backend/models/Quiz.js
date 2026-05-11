@@ -7,6 +7,7 @@ const quizSchema = new mongoose.Schema({
   teacherName: { type: String },
   subject: { type: String, required: true },
   lessonName: { type: String, required: true },
+  lessonId: { type: String, required: true },
   className: { type: String },
   title: { type: String, required: true },
   questions: [
