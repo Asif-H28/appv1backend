@@ -12,7 +12,7 @@ const auth = (req, res, next) => {
     req.user = decoded; // Contains orgId, role, etc.
     next();
   } catch (error) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    return res.status(401).json({ error: 'Invalid or expired token', showLoginpage: true });
   }
 };
 
