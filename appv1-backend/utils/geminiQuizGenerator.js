@@ -5,9 +5,7 @@ const Groq = require('groq-sdk');
  */
 exports.generateMCQQuestions = async (apiKey, subject, lessonName, className, totalQuestions, difficulty) => {
   try {
-    if (!apiKey) {
-      throw new Error("API Key is required for quiz generation.");
-    }
+    
 
     const groq = new Groq({ apiKey });
 
