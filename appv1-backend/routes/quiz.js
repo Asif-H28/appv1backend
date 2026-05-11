@@ -263,6 +263,16 @@ router.get('/class/:classId', async (req, res) => {
   }
 });
 
+// --- DEBUG ENDPOINT ---
+router.get('/debug-key', (req, res) => {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) {
+    return res.json({ success: false, message: "GROQ_API_KEY is missing from environment" });
+  }
+  const maskedKey = `${key.substring(0, 5)}...${key.substring(key.length - 5)}`;
+  res.json({ success: true, keyExists: true, maskedKey, fullLength: key.length });
+});
+
 // 3. GET SINGLE QUIZ (Full data for attempt)
 router.get('/:quizId', async (req, res) => {
   try {
@@ -323,21 +333,5 @@ router.patch('/:quizId', async (req, res) => {
   }
 });
 
-// --- DEBUG ENDPOINT ---
-// DELETE THIS AFTER TESTING
-router.get('/debug-key', (req, res) => {
-  const key = process.env.GROQ_API_KEY;
-  if (!key) {
-    return res.json({ success: false, message: "GROQ_API_KEY is missing from environment" });
-  }
-  // Return masked key for verification
-  const maskedKey = `${key.substring(0, 5)}...${key.substring(key.length - 5)}`;
-  res.json({ 
-    success: true, 
-    keyExists: true, 
-    maskedKey: maskedKey,
-    fullLength: key.length
-  });
-});
 
 module.exports = router;
