@@ -1,45 +1,59 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require('groq-sdk');
 
 /**
- * Generates MCQ questions using Google Gemini API.
- * @param {string} subject - The subject name.
- * @param {string} lessonName - The lesson name.
- * @param {string} className - The class name.
- * @param {number} totalQuestions - Number of questions to generate.
- * @param {string} difficulty - Difficulty level (easy, medium, hard).
- * @returns {Promise<Array>} - Array of question objects.
+ * Generates MCQ questions using Groq (Llama-3 model)
  */
 exports.generateMCQQuestions = async (subject, lessonName, className, totalQuestions, difficulty) => {
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    if (!process.env.GROQ_API_KEY) {
+      throw new Error("GROQ_API_KEY is missing in .env file. Please add it to generate quizzes.");
+    }
+
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
     const prompt = `Generate ${totalQuestions} multiple choice questions for Class ${className}, Subject: ${subject}, Lesson: ${lessonName}, Difficulty: ${difficulty}.
-    Return ONLY a valid JSON array. No markdown, no explanation.
-    Format: [{ "questionText": "...", "options": ["A", "B", "C", "D"], "correctAnswer": "...", "explanation": "..." }]`;
+    Return ONLY a valid JSON array. No markdown, no preamble, no explanation text outside the JSON.
+    
+    Format:
+    [
+      {
+        "questionText": "Question here?",
+        "options": ["Option A", "Option B", "Option C", "Option D"],
+        "correctAnswer": "Option A",
+        "explanation": "Why this is correct"
+      }
+    ]`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text();
-    console.log("--- GEMINI RAW RESPONSE ---");
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      response_format: { type: "json_object" } // Groq supports forced JSON mode
+    });
+
+    let text = completion.choices[0].message.content;
+    console.log("--- GROQ RAW RESPONSE ---");
     console.log(text);
     console.log("---------------------------");
 
-    // Clean up the response text (strip markdown code blocks if present)
+    // Some models wrap JSON in markdown even with response_format
     text = text.replace(/```json/g, "").replace(/```/g, "").trim();
 
     try {
-      const questions = JSON.parse(text);
+      const parsed = JSON.parse(text);
+      // Groq with json_object sometimes returns { "questions": [...] } or just the array
+      const questions = Array.isArray(parsed) ? parsed : (parsed.questions || Object.values(parsed)[0]);
+      
       if (!Array.isArray(questions)) {
-        throw new Error("Gemini response is not an array");
+        throw new Error("Response is not an array");
       }
       return questions;
     } catch (parseError) {
-      console.error("Parsing Gemini response failed:", text);
-      throw new Error("Failed to generate questions from Gemini (JSON Parsing Error)");
+      console.error("Parsing Groq response failed:", text);
+      throw new Error("Failed to parse quiz questions from AI response.");
     }
   } catch (error) {
-    console.error("Gemini API Error details:", error);
+    console.error("Groq API Error details:", error);
     throw error;
   }
 };
