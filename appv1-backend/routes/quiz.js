@@ -40,14 +40,6 @@ router.get('/config/limit', async (req, res) => {
 // --- QUIZ ENDPOINTS ---
 router.post('/create', async (req, res) => {
   try {
-    // --- AI Generation Guard ---
-    if (!process.env.GROQ_API_KEY) {
-      return res.status(500).json({ 
-        success: false, 
-        error: "GROQ_API_KEY is not configured on the server. Please check environment variables." 
-      });
-    }
-
     const { 
       orgId, classId, teacherId, teacherName, subject, 
       lessonName, lessonId, className, totalQuestions, durationMinutes, 
