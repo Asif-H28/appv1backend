@@ -5,10 +5,7 @@ const Groq = require('groq-sdk');
  */
 exports.generateMCQQuestions = async (subject, lessonName, className, totalQuestions, difficulty) => {
   try {
-    if (!process.env.GROQ_API_KEY) {
-      throw new Error("GROQ_API_KEY is missing in .env file. Please add it to generate quizzes.");
-    }
-
+    
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
     const prompt = `Generate ${totalQuestions} multiple choice questions for Class ${className}, Subject: ${subject}, Lesson: ${lessonName}, Difficulty: ${difficulty}.
