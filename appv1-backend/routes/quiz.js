@@ -271,24 +271,15 @@ router.get('/class/:classId', async (req, res) => {
   }
 });
 
-// --- DEBUG ENDPOINT (DANGER: UNMASKED) ---
-router.get('/debug-key', (req, res) => {
-  const envKeys = Object.keys(process.env);
-  const groqRelated = envKeys.filter(k => k.includes('GROQ'));
-  const gmailRelated = envKeys.filter(k => k.includes('GMAIL'));
-
-  const results = {};
-  groqRelated.forEach(k => results[k] = process.env[k]);
-  gmailRelated.forEach(k => results[k] = process.env[k]);
-
+// --- TEMP ENV TEST ---
+router.get('/env-test', (req, res) => {
   res.json({
-    success: true,
-    foundKeys: results,
-    // Also check the specific names we expect
-    expected: {
-      GROQ_API_KEY: process.env.GROQ_API_KEY ? "FOUND" : "MISSING",
-      GMAIL_APP_PASS: process.env.GMAIL_APP_PASS ? "FOUND" : "MISSING"
-    }
+    GROQ_API_KEY_exists: !!process.env.GROQ_API_KEY,
+    GROQ_API_KEY_length: process.env.GROQ_API_KEY?.length || 0,
+    GROQ_API_KEY_first5: process.env.GROQ_API_KEY?.substring(0, 5) || 'NONE',
+    NODE_ENV: process.env.NODE_ENV,
+    all_keys_with_GROQ: Object.keys(process.env).filter(k => k.includes('GROQ')),
+    all_keys_with_GMAIL: Object.keys(process.env).filter(k => k.includes('GMAIL'))
   });
 });
 
