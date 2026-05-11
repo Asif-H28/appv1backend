@@ -1,4 +1,6 @@
-require('dotenv').config();
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 // --- STARTUP ENV CHECK ---
 const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'GROQ_API_KEY', 'GMAIL_APP_PASS'];
