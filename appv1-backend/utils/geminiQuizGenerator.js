@@ -3,13 +3,10 @@ const Groq = require('groq-sdk');
 /**
  * Generates MCQ questions using Groq (Llama-3 model)
  */
-exports.generateMCQQuestions = async (subject, lessonName, className, totalQuestions, difficulty) => {
+exports.generateMCQQuestions = async (apiKey, subject, lessonName, className, totalQuestions, difficulty) => {
   try {
-    const apiKey = process.env.GROQ_API_KEY;
-    console.log('generateMCQQuestions called — GROQ key present:', !!apiKey, 'length:', apiKey?.length);
-    
     if (!apiKey) {
-      throw new Error("GROQ_API_KEY is missing from environment variables.");
+      throw new Error("API Key is required for quiz generation.");
     }
 
     const groq = new Groq({ apiKey });

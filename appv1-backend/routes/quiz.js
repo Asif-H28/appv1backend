@@ -50,6 +50,7 @@ router.post('/create', async (req, res) => {
     let generatedQuestions;
     try {
       generatedQuestions = await generateMCQQuestions(
+        process.env.GROQ_API_KEY,
         subject || "General", 
         lessonName || "Lesson", 
         className || "Class", 
@@ -222,7 +223,7 @@ router.post('/test-groq', async (req, res) => {
   try {
     const { generateMCQQuestions } = require('../utils/geminiQuizGenerator');
     // Simple test data
-    const questions = await generateMCQQuestions('Math', 'Addition', 'Class 5', 2, 'easy');
+    const questions = await generateMCQQuestions(process.env.GROQ_API_KEY, 'Math', 'Addition', 'Class 5', 2, 'easy');
     res.json({ success: true, count: questions.length, sample: questions[0] });
   } catch (err) {
     res.json({ 
