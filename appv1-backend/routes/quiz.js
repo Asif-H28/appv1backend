@@ -265,12 +265,24 @@ router.get('/class/:classId', async (req, res) => {
 
 // --- DEBUG ENDPOINT ---
 router.get('/debug-key', (req, res) => {
-  const key = process.env.GROQ_API_KEY;
-  if (!key) {
-    return res.json({ success: false, message: "GROQ_API_KEY is missing from environment" });
-  }
-  const maskedKey = `${key.substring(0, 5)}...${key.substring(key.length - 5)}`;
-  res.json({ success: true, keyExists: true, maskedKey, fullLength: key.length });
+  const groqKey = process.env.GROQ_API_KEY;
+  const gmailPass = process.env.GMAIL_APP_PASS;
+
+  const mask = (val) => val ? `${val.substring(0, 4)}...${val.substring(val.length - 4)}` : "MISSING";
+
+  res.json({
+    success: true,
+    groq: {
+      exists: !!groqKey,
+      masked: mask(groqKey),
+      length: groqKey ? groqKey.length : 0
+    },
+    gmail: {
+      exists: !!gmailPass,
+      masked: mask(gmailPass),
+      length: gmailPass ? gmailPass.length : 0
+    }
+  });
 });
 
 // 3. GET SINGLE QUIZ (Full data for attempt)
