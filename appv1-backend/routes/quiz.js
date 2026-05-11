@@ -46,45 +46,31 @@ router.post('/create', async (req, res) => {
       difficulty, title 
     } = req.body;
 
-    // 1. Basic field validation
-    if (!orgId || !classId || !teacherId || !subject || !lessonName || !lessonId || !title) {
-      return res.status(400).json({ success: false, error: "Missing required fields (orgId, classId, teacherId, subject, lessonName, lessonId, title)" });
-    }
-
-    // 2. Check creation limit
-    let config = await GlobalConfig.findOne({ key: 'maxQuizzesPerLesson' });
-    const maxLimit = config ? parseInt(config.value) : 3;
-
-    const quizCount = await Quiz.countDocuments({ classId, lessonId, teacherId, isActive: true });
-    if (quizCount >= maxLimit) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Limit reached. You can only create up to ${maxLimit} quizzes for this lesson.` 
-      });
-    }
-
-    // 3. Generate questions using Groq
+    // 1. Generate questions using Groq
     let generatedQuestions;
     try {
       generatedQuestions = await generateMCQQuestions(
-        subject, lessonName, className || "Class", 
-        totalQuestions || 5, difficulty || 'medium'
+        subject || "General", 
+        lessonName || "Lesson", 
+        className || "Class", 
+        totalQuestions || 5, 
+        difficulty || 'medium'
       );
     } catch (aiError) {
-      return res.status(500).json({ success: false, error: aiError.message || "AI Generation failed" });
+      return res.status(500).json({ success: false, error: "AI Generation failed: " + aiError.message });
     }
 
-    // 4. Save Quiz to MongoDB
+    // 2. Save Quiz to MongoDB
     const quiz = new Quiz({
-      orgId,
-      classId,
-      teacherId,
-      teacherName,
-      subject,
-      lessonName,
-      lessonId,
+      orgId: orgId || "TEST_ORG",
+      classId: classId || "TEST_CLASS",
+      teacherId: teacherId || "TEST_TCH",
+      teacherName: teacherName || "Teacher",
+      subject: subject || "General",
+      lessonName: lessonName || "Lesson",
+      lessonId: lessonId || Date.now().toString(),
       className: className || "Class",
-      title,
+      title: title || "Untitled Quiz",
       questions: generatedQuestions,
       totalQuestions: generatedQuestions.length,
       durationMinutes: durationMinutes || 15,
@@ -97,21 +83,11 @@ router.post('/create', async (req, res) => {
       success: true,
       message: "Quiz created successfully",
       quizId: quiz.quizId,
-      quiz: {
-        _id: quiz._id,
-        title: quiz.title,
-        totalQuestions: quiz.totalQuestions,
-        durationMinutes: quiz.durationMinutes,
-        difficulty: quiz.difficulty
-      }
+      quiz: quiz
     });
 
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message,
-      step: 'simple-create-route-catch'
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
