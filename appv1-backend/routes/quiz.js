@@ -133,7 +133,12 @@ router.post('/create', async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      step: 'create-route-main-catch',
+      stack: error.stack?.split('\n').slice(0, 4)
+    });
   }
 });
 
