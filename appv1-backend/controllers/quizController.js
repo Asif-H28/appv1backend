@@ -12,6 +12,20 @@ exports.createQuiz = async (req, res) => {
       difficulty, title 
     } = req.body;
 
+    // 0. Validation: Limit 3 quizzes per lesson in a subject
+    const existingQuizzesCount = await Quiz.countDocuments({
+      subject,
+      lessonId,
+      isActive: true
+    });
+
+    if (existingQuizzesCount >= 3) {
+      return res.status(400).json({
+        success: false,
+        error: `Limit reached: You can only create up to 3 quizzes for the lesson "${lessonName}" in "${subject}".`
+      });
+    }
+
     // 1. Get Processing Engine configuration
     const engineConfig = getProcessingEngineConfig();
     
