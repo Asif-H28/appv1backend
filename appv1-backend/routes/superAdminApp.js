@@ -9,7 +9,8 @@ const {
 } = require('../controllers/appVersionController');
 const {
   getOrganizationByOrgId,
-  updateOrganizationStatus
+  updateOrganizationStatus,
+  getAllOrganizations
 } = require('../controllers/orgController');
 const superAdminAuth = require('../middleware/superAdminAuth');
 
@@ -25,6 +26,7 @@ router.put('/:id', updateVersion);
 router.delete('/:id', deleteVersion);
 
 // Organization Management
+router.get('/org/all', getAllOrganizations);
 router.get('/org/:orgId', getOrganizationByOrgId);
 router.patch('/org/:orgId/status', updateOrganizationStatus);
 
