@@ -33,6 +33,9 @@ router.get('/result/student/:studentId', quizController.getStudentResults);
 // 8. Get All Results for a Quiz (Teacher View)
 router.get('/results/:quizId', quizController.getQuizResults);
 
+// 9. Get Single Student Result for a Quiz (Review View)
+router.get('/result/:quizId/student/:studentId', quizController.getSingleStudentResult);
+
 // --- DANGEROUS: DUMP ALL ENV (DELETE AFTER TESTING) ---
 router.get('/debug-env-dump', (req, res) => {
   const publicEnv = {};

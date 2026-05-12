@@ -182,3 +182,44 @@ exports.getQuizResults = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+exports.getSingleStudentResult = async (req, res) => {
+  try {
+    const { quizId, studentId } = req.params;
+    const result = await QuizResult.findOne({ quizId, studentId });
+    
+    if (!result) {
+      return res.status(404).json({ 
+        success: false, 
+        error: "Result not found for this quiz and student" 
+      });
+    }
+
+    // Fetch quiz details to include question text/options for review if needed
+    const quiz = await Quiz.findById(quizId);
+    
+    // Construct review data
+    const review = result.answers.map(ans => {
+      const question = quiz ? quiz.questions[ans.questionIndex] : null;
+      return {
+        questionIndex: ans.questionIndex,
+        selectedAnswer: ans.selectedAnswer,
+        isCorrect: ans.isCorrect,
+        questionText: question ? question.question : "Question not found",
+        options: question ? question.options : [],
+        correctAnswer: question ? question.correctAnswer : "N/A",
+        explanation: question ? question.explanation : ""
+      };
+    });
+
+    res.json({ 
+      success: true, 
+      result: {
+        ...result._doc,
+        review: review
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
