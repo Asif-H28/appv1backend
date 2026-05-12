@@ -205,7 +205,7 @@ exports.getSingleStudentResult = async (req, res) => {
         questionIndex: ans.questionIndex,
         selectedAnswer: ans.selectedAnswer,
         isCorrect: ans.isCorrect,
-        questionText: question ? question.question : "Question not found",
+        questionText: question ? question.questionText : "Question not found",
         options: question ? question.options : [],
         correctAnswer: question ? question.correctAnswer : "N/A",
         explanation: question ? question.explanation : ""
