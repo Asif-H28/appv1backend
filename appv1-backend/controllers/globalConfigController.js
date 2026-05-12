@@ -6,7 +6,9 @@ const HASHED_PIN = '$2b$12$qGt7jFLe.jDrbpRS9m1Jw.9unOsD75BDocnX1.FbG4RA3P6WpyKqq
 
 exports.getGlobalConfigs = async (req, res) => {
   try {
-    const configs = await GlobalConfig.find();
+    const { orgId } = req.query;
+    const filter = orgId ? { orgId } : { orgId: null };
+    const configs = await GlobalConfig.find(filter);
     res.json({ success: true, configs });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -15,7 +17,7 @@ exports.getGlobalConfigs = async (req, res) => {
 
 exports.updateGlobalConfig = async (req, res) => {
   try {
-    const { key, value, description, pin } = req.body;
+    const { key, value, description, pin, orgId } = req.body;
     
     if (!key) {
       return res.status(400).json({ success: false, error: "Key is required" });
@@ -32,14 +34,14 @@ exports.updateGlobalConfig = async (req, res) => {
     }
 
     const config = await GlobalConfig.findOneAndUpdate(
-      { key },
+      { key, orgId: orgId || null },
       { value, description },
       { upsert: true, new: true }
     );
 
     res.json({ 
       success: true, 
-      message: `Config ${key} updated successfully`,
+      message: `Config ${key} ${orgId ? `for org ${orgId}` : 'globally'} updated successfully`,
       config 
     });
   } catch (error) {

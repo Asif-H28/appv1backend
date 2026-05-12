@@ -12,12 +12,19 @@ exports.createQuiz = async (req, res) => {
       difficulty, title 
     } = req.body;
 
-    // 0. Validation: Dynamic Limit from GlobalConfig (Default: 3)
+    // 0. Validation: Dynamic Limit (Org Specific -> Global -> Default: 3)
     let quizLimit = 3;
     try {
-      const limitConfig = await GlobalConfig.findOne({ key: 'QUIZ_LIMIT_PER_LESSON' });
-      if (limitConfig && !isNaN(limitConfig.value)) {
-        quizLimit = parseInt(limitConfig.value);
+      // 1. Check for Organization specific limit
+      const orgLimit = await GlobalConfig.findOne({ key: 'QUIZ_LIMIT_PER_LESSON', orgId });
+      if (orgLimit && !isNaN(orgLimit.value)) {
+        quizLimit = parseInt(orgLimit.value);
+      } else {
+        // 2. Fallback to Global system limit
+        const globalLimit = await GlobalConfig.findOne({ key: 'QUIZ_LIMIT_PER_LESSON', orgId: null });
+        if (globalLimit && !isNaN(globalLimit.value)) {
+          quizLimit = parseInt(globalLimit.value);
+        }
       }
     } catch (configError) {
       console.error("Error fetching quiz limit config:", configError);
