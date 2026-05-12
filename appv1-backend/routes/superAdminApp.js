@@ -11,10 +11,6 @@ const {
   getOrganizationByOrgId,
   updateOrganizationStatus
 } = require('../controllers/orgController');
-const {
-  getGlobalConfigs,
-  updateGlobalConfig
-} = require('../controllers/globalConfigController');
 const superAdminAuth = require('../middleware/superAdminAuth');
 
 // PUBLIC ROUTES
@@ -31,9 +27,5 @@ router.delete('/:id', deleteVersion);
 // Organization Management
 router.get('/org/:orgId', getOrganizationByOrgId);
 router.patch('/org/:orgId/status', updateOrganizationStatus);
-
-// Global Config Management
-router.get('/config', getGlobalConfigs);
-router.post('/config', updateGlobalConfig);
 
 module.exports = router;
