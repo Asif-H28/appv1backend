@@ -176,8 +176,19 @@ exports.getStudentResults = async (req, res) => {
 
 exports.getQuizResults = async (req, res) => {
   try {
-    const results = await QuizResult.find({ quizId: req.params.quizId });
-    res.json({ success: true, results });
+    const results = await QuizResult.find({ quizId: req.params.quizId }).sort({ submittedAt: -1 });
+    
+    const attempts = results.map(r => ({
+      "studentname": r.studentName || "Unknown",
+      "total score": r.score,
+      "totaltimetaken": r.timeTakenSeconds,
+      "Total Questoins on the quiz": r.totalQuestions
+    }));
+
+    res.json({ 
+      success: true, 
+      attempts: attempts 
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
