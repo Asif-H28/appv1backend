@@ -31,6 +31,7 @@ exports.createQuiz = async (req, res) => {
     }
 
     const existingQuizzesCount = await Quiz.countDocuments({
+      orgId,
       subject,
       lessonId,
       isActive: true
