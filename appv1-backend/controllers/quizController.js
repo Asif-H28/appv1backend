@@ -12,17 +12,27 @@ exports.createQuiz = async (req, res) => {
       difficulty, title 
     } = req.body;
 
-    // 0. Validation: Limit 3 quizzes per lesson in a subject
+    // 0. Validation: Dynamic Limit from GlobalConfig (Default: 3)
+    let quizLimit = 3;
+    try {
+      const limitConfig = await GlobalConfig.findOne({ key: 'QUIZ_LIMIT_PER_LESSON' });
+      if (limitConfig && !isNaN(limitConfig.value)) {
+        quizLimit = parseInt(limitConfig.value);
+      }
+    } catch (configError) {
+      console.error("Error fetching quiz limit config:", configError);
+    }
+
     const existingQuizzesCount = await Quiz.countDocuments({
       subject,
       lessonId,
       isActive: true
     });
 
-    if (existingQuizzesCount >= 3) {
+    if (existingQuizzesCount >= quizLimit) {
       return res.status(400).json({
         success: false,
-        error: `Limit reached: You can only create up to 3 quizzes for the lesson "${lessonName}" in "${subject}".`
+        error: `Limit reached: You can only create up to ${quizLimit} quizzes for the lesson "${lessonName}" in "${subject}".`
       });
     }
 
