@@ -58,7 +58,16 @@ Format:
     }
     
     console.log('Questions generated successfully:', questions.length);
-    return questions;
+
+    // Sanitize and ensure correct types before returning
+    return questions.map(q => ({
+      questionText: String(q.questionText || ""),
+      options: Array.isArray(q.options) ? q.options.slice(0, 4).map(String) : [],
+      correctAnswer: Array.isArray(q.correctAnswer) 
+        ? String(q.correctAnswer[0]) 
+        : String(q.correctAnswer || ""),
+      explanation: String(q.explanation || "")
+    }));
 
   } catch (error) {
     console.error('Groq generation error:', error.message);
