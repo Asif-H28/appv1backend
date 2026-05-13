@@ -5,7 +5,9 @@ const {
   getTransportCoordinators,
   removeTransportCoordinator,
   createVehicle,
-  getOrgVehicles
+  getOrgVehicles,
+  updateVehicle,
+  deleteVehicle
 } = require('../controllers/transportController');
 
 const auth = require('../middleware/auth');
@@ -23,5 +25,7 @@ router.delete('/coordinators/:orgId/:teacherId', removeTransportCoordinator); //
 // Vehicle Management
 router.post('/vehicles', createVehicle); // Coordinator adds vehicle
 router.get('/vehicles/:orgId', getOrgVehicles); // List vehicles
+router.put('/vehicles/:vehicleId', updateVehicle); // Update vehicle
+router.delete('/vehicles/:vehicleId', deleteVehicle); // Delete vehicle
 
 module.exports = router;

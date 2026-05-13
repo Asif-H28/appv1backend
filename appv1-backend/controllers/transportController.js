@@ -135,3 +135,57 @@ exports.getOrgVehicles = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// UPDATE VEHICLE
+exports.updateVehicle = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+    const { vehicleName, vehicleNumber, driverName, driverPhoneNumber, routeId } = req.body;
+
+    const updatedVehicle = await Vehicle.findOneAndUpdate(
+      { vehicleId },
+      { 
+        $set: { 
+          vehicleName, 
+          vehicleNumber, 
+          driverName, 
+          driverPhoneNumber, 
+          routeId 
+        } 
+      },
+      { new: true }
+    );
+
+    if (!updatedVehicle) {
+      return res.status(404).json({ success: false, error: 'Vehicle not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Vehicle updated successfully',
+      vehicle: updatedVehicle
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// DELETE VEHICLE
+exports.deleteVehicle = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+
+    const deletedVehicle = await Vehicle.findOneAndDelete({ vehicleId });
+
+    if (!deletedVehicle) {
+      return res.status(404).json({ success: false, error: 'Vehicle not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Vehicle deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
