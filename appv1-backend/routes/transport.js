@@ -9,7 +9,10 @@ const {
   updateVehicle,
   deleteVehicle,
   setupOrgPin,
-  getVehicleByDriver
+  getVehicleByDriver,
+  updateLocation,
+  stopRoute,
+  getActiveLocations
 } = require('../controllers/transportController');
 
 const auth = require('../middleware/auth');
@@ -17,6 +20,9 @@ const checkOrgStatus = require('../middleware/checkOrgStatus');
 
 // PUBLIC ROUTES (No Auth Required)
 router.post('/driver/login', getVehicleByDriver); // Driver gets vehicle by Phone + PIN
+router.post('/location/:vehicleId', updateLocation); // Driver pushes location
+router.patch('/location/:vehicleId/stop', stopRoute); // Driver stops route
+router.get('/location/org/:orgId', getActiveLocations); // Viewers fetch all active vehicles
 
 // PROTECTED ROUTES (Requires Token)
 router.use(auth);

@@ -3,6 +3,7 @@ const Vehicle = require('../models/Vehicle');
 const Teacher = require('../models/Teacher');
 const Organization = require('../models/Organization');
 const VehiclePin = require('../models/VehiclePin');
+const VehicleLocation = require('../models/VehicleLocation');
 
 const generateVehicleId = () => `VEH_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
@@ -263,6 +264,75 @@ exports.getVehicleByDriver = async (req, res) => {
         routeId: vehicle.routeId
       }
     });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// UPDATE VEHICLE LOCATION (Driver Pushes)
+exports.updateLocation = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+    const { orgId, latitude, longitude, vehicleName, vehicleNumber, driverName } = req.body;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ success: false, error: 'Latitude and Longitude are required' });
+    }
+
+    await VehicleLocation.updateOne(
+      { vehicleId },
+      { 
+        $set: { 
+          orgId, 
+          latitude, 
+          longitude,
+          vehicleName, 
+          vehicleNumber,
+          driverName, 
+          isActive: true,
+          updatedAt: new Date() 
+        } 
+      },
+      { upsert: true }
+    );
+
+    res.json({ success: true, message: 'Location updated' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// STOP ROUTE (Driver Stops)
+exports.stopRoute = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+
+    const result = await VehicleLocation.updateOne(
+      { vehicleId },
+      { $set: { isActive: false, updatedAt: new Date() } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, error: 'Vehicle location entry not found' });
+    }
+
+    res.json({ success: true, message: 'Route stopped' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// GET ACTIVE LOCATIONS FOR ORG (Viewer Fetch)
+exports.getActiveLocations = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+
+    const vehicles = await VehicleLocation.find({
+      orgId,
+      isActive: true
+    });
+
+    res.json({ success: true, vehicles });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
