@@ -133,8 +133,8 @@ app.use('/api/comprehensive-assessment', require('./routes/comprehensiveAssessme
 app.use('/api/comprehensive-result', require('./routes/comprehensiveResultRoutes'));
 
 // Super Admin Authentication Routes (isolated to 'webapp' DB)
-app.use('/api/super-admin', require('./routes/superAdminAuth'));
 app.use('/api/super-admin/app', require('./routes/superAdminApp'));
+app.use('/api/super-admin', require('./routes/superAdminAuth'));
 
 // License Key Request Routes
 app.use('/api/license-request', require('./routes/licenseRequestRoutes'));
