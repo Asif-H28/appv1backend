@@ -186,10 +186,12 @@ exports.getOrgTeachers = async (req, res) => {
         teacherId: t.teacherId,
         name: t.name,
         email: t.email,
+        gender: t.gender || 'N/A',
         dob: t.dob,
         address: t.address,
         phoneNumber: t.phoneNumber,
-        verified: t.verified
+        verified: t.verified,
+        createdAt: t.createdAt
       }))
     });
   } catch (error) {
@@ -397,6 +399,8 @@ exports.getTeacherList = async (req, res) => {
 exports.removeTeacherFromOrg = async (req, res) => {
   try {
     const { teacherId } = req.params;
+    const requesterOrgId = req.user.orgId;
+    const requesterRole = req.user.role;
 
     // 1. Check if teacher exists
     const teacher = await Teacher.findOne({ teacherId });
@@ -404,16 +408,21 @@ exports.removeTeacherFromOrg = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Teacher not found' });
     }
 
-    // 2. Delete the teacher account
+    // 2. Security Check: Only Admin of the same org or Super Admin can remove
+    if (requesterRole !== 'super_admin' && teacher.orgId !== requesterOrgId) {
+      return res.status(403).json({ success: false, error: 'Unauthorized: You can only remove teachers from your own organization' });
+    }
+
+    // 3. Delete the teacher account
     await Teacher.findOneAndDelete({ teacherId });
 
-    // 3. Cleanup: Set teacherId to empty in classrooms to avoid broken references
+    // 4. Cleanup: Set teacherId to empty in classrooms to avoid broken references
     await Classroom.updateMany(
       { teacherId },
       { $set: { teacherId: "" } }
     );
 
-    // 4. Cleanup: Remove any join requests associated with this teacher
+    // 5. Cleanup: Remove any join requests associated with this teacher
     await JoinRequest.deleteMany({ teacherId });
 
     res.json({
