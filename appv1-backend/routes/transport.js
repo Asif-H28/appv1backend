@@ -12,7 +12,8 @@ const {
   getVehicleByDriver,
   updateLocation,
   stopRoute,
-  getActiveLocations
+  getActiveLocations,
+  getVehicleLocation
 } = require('../controllers/transportController');
 
 const auth = require('../middleware/auth');
@@ -23,6 +24,7 @@ router.post('/driver/login', getVehicleByDriver); // Driver gets vehicle by Phon
 router.post('/location/:vehicleId', updateLocation); // Driver pushes location
 router.patch('/location/:vehicleId/stop', stopRoute); // Driver stops route
 router.get('/location/org/:orgId', getActiveLocations); // Viewers fetch all active vehicles
+router.get('/location/:vehicleId', getVehicleLocation); // Fetch specific vehicle location
 
 // PROTECTED ROUTES (Requires Token)
 router.use(auth);

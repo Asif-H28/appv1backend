@@ -337,3 +337,20 @@ exports.getActiveLocations = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// GET SPECIFIC VEHICLE LOCATION
+exports.getVehicleLocation = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+
+    const vehicle = await VehicleLocation.findOne({ vehicleId });
+
+    if (!vehicle) {
+      return res.status(404).json({ success: false, error: 'Vehicle location not found' });
+    }
+
+    res.json({ success: true, vehicle });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
