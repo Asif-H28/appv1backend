@@ -10,7 +10,8 @@ const {
   getJoinRequests,
   approveJoinRequest,
   rejectJoinRequest,
-  getTeacherList
+  getTeacherList,
+  removeTeacherFromOrg
 } = require('../controllers/teacherController');
 
 const auth = require('../middleware/auth');
@@ -30,6 +31,7 @@ router.get('/list/:orgId', getTeacherList);
 router.get('/org/:orgId', getOrgTeachers);
 router.get('/:teacherId/profile', getTeacherProfile);
 router.put('/:teacherId/profile', updateTeacherProfile);
+router.delete('/:teacherId', removeTeacherFromOrg); // Remove teacher & delete account
 
 // Join Requests
 router.get('/join-requests/:orgId', getJoinRequests);               // Admin gets requests

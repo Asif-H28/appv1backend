@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const Teacher = require('../models/Teacher');
 const Organization = require('../models/Organization');
 const JoinRequest = require('../models/JoinRequest');
+const Classroom = require('../models/Classroom');
 
 const generateTeacherId = () => `TCH_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 const generateRequestId = () => `REQ_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -389,5 +390,37 @@ exports.getTeacherList = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+// REMOVE TEACHER FROM ORG (Delete account)
+exports.removeTeacherFromOrg = async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    // 1. Check if teacher exists
+    const teacher = await Teacher.findOne({ teacherId });
+    if (!teacher) {
+      return res.status(404).json({ success: false, error: 'Teacher not found' });
+    }
+
+    // 2. Delete the teacher account
+    await Teacher.findOneAndDelete({ teacherId });
+
+    // 3. Cleanup: Set teacherId to empty in classrooms to avoid broken references
+    await Classroom.updateMany(
+      { teacherId },
+      { $set: { teacherId: "" } }
+    );
+
+    // 4. Cleanup: Remove any join requests associated with this teacher
+    await JoinRequest.deleteMany({ teacherId });
+
+    res.json({
+      success: true,
+      message: `Teacher ${teacher.name} has been removed and their account deleted successfully.`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };
