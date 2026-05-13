@@ -95,7 +95,8 @@ exports.loginTeacher = async (req, res) => {
         orgId: teacher.orgId,
         name: teacher.name,
         email: teacher.email,
-        verified: teacher.verified   // Show verified status on login
+        verified: teacher.verified,   // Show verified status on login
+        isTransportCoordinator: teacher.isTransportCoordinator || false
       }
     });
   } catch (error) {
@@ -135,7 +136,8 @@ exports.updateTeacherProfile = async (req, res) => {
         dob: teacher.dob,
         address: teacher.address,
         phoneNumber: teacher.phoneNumber,
-        verified: teacher.verified
+        verified: teacher.verified,
+        isTransportCoordinator: teacher.isTransportCoordinator || false
       }
     });
   } catch (error) {
@@ -165,6 +167,7 @@ exports.getTeacherProfile = async (req, res) => {
           gender: teacher.gender,   
         phoneNumber: teacher.phoneNumber,
         verified: teacher.verified,
+        isTransportCoordinator: teacher.isTransportCoordinator || false,
         createdAt: teacher.createdAt
       }
     });
