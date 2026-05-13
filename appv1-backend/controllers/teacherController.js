@@ -191,6 +191,7 @@ exports.getOrgTeachers = async (req, res) => {
         address: t.address,
         phoneNumber: t.phoneNumber,
         verified: t.verified,
+        isTransportCoordinator: t.isTransportCoordinator || false,
         createdAt: t.createdAt
       }))
     });

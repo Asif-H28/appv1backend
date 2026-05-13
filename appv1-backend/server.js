@@ -142,6 +142,9 @@ app.use('/api/license-request', require('./routes/licenseRequestRoutes'));
 // Quiz Routes
 app.use('/api/quiz', require('./routes/quiz'));
 
+// Transport Routes
+app.use('/api/transport', require('./routes/transport'));
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });

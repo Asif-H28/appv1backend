@@ -11,7 +11,8 @@ const teacherSchema = new mongoose.Schema({
   address:     { type: String,  default: '' },
   phoneNumber: { type: String,  default: '' },
   verified:    { type: Boolean, default: false },
-  fcmToken:    { type: String,  default: null }
+  fcmToken:    { type: String,  default: null },
+  isTransportCoordinator: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Teacher', teacherSchema);
