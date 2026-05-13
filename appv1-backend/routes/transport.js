@@ -7,15 +7,23 @@ const {
   createVehicle,
   getOrgVehicles,
   updateVehicle,
-  deleteVehicle
+  deleteVehicle,
+  setupOrgPin,
+  getVehicleByDriver
 } = require('../controllers/transportController');
 
 const auth = require('../middleware/auth');
 const checkOrgStatus = require('../middleware/checkOrgStatus');
 
-// All transport routes are protected
+// PUBLIC ROUTES (No Auth Required)
+router.post('/driver/login', getVehicleByDriver); // Driver gets vehicle by Phone + PIN
+
+// PROTECTED ROUTES (Requires Token)
 router.use(auth);
 router.use(checkOrgStatus);
+
+// PIN Management
+router.post('/setup-pin', setupOrgPin); // Coordinator/Admin sets org PIN
 
 // Coordinator Management
 router.post('/coordinators', addTransportCoordinator); // Admin adds coordinator

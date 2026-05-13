@@ -2,6 +2,7 @@ const TransportCoordinator = require('../models/TransportCoordinator');
 const Vehicle = require('../models/Vehicle');
 const Teacher = require('../models/Teacher');
 const Organization = require('../models/Organization');
+const VehiclePin = require('../models/VehiclePin');
 
 const generateVehicleId = () => `VEH_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
@@ -184,6 +185,83 @@ exports.deleteVehicle = async (req, res) => {
     res.json({
       success: true,
       message: 'Vehicle deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// SETUP ORGANIZATION VEHICLE PIN (Auth Required)
+exports.setupOrgPin = async (req, res) => {
+  try {
+    const { orgId, pin } = req.body;
+
+    if (!orgId || !pin) {
+      return res.status(400).json({ success: false, error: 'orgId and 4-digit pin are required' });
+    }
+
+    if (pin.length !== 4) {
+      return res.status(400).json({ success: false, error: 'PIN must be exactly 4 digits' });
+    }
+
+    const updatedPin = await VehiclePin.findOneAndUpdate(
+      { orgId },
+      { $set: { pin } },
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Organization vehicle PIN setup successfully',
+      data: updatedPin
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// GET VEHICLE BY DRIVER (Public - No Auth Required)
+exports.getVehicleByDriver = async (req, res) => {
+  try {
+    const { phoneNumber, pin } = req.body;
+
+    if (!phoneNumber || !pin) {
+      return res.status(400).json({ success: false, error: 'phoneNumber and pin are required' });
+    }
+
+    // 1. Find the organization that has this PIN
+    // Note: Since PINs are org-wide, there might be multiple orgs with same PIN, 
+    // but the driver's phone number + PIN combination should ideally be unique enough.
+    // However, the best way is to find the PIN entry first.
+    const pinEntries = await VehiclePin.find({ pin });
+    if (pinEntries.length === 0) {
+      return res.status(404).json({ success: false, error: 'Invalid PIN' });
+    }
+
+    const orgIds = pinEntries.map(e => e.orgId);
+
+    // 2. Find vehicle matching phone number within those organizations
+    const vehicle = await Vehicle.findOne({ 
+      driverPhoneNumber: phoneNumber, 
+      orgId: { $in: orgIds } 
+    });
+
+    if (!vehicle) {
+      return res.status(404).json({ success: false, error: 'No vehicle found for this phone number and PIN combination' });
+    }
+
+    res.json({
+      success: true,
+      vehicle: {
+        vehicleId: vehicle.vehicleId,
+        orgId: vehicle.orgId,
+        vehicleName: vehicle.vehicleName,
+        vehicleNumber: vehicle.vehicleNumber,
+        driverName: vehicle.driverName,
+        driverPhoneNumber: vehicle.driverPhoneNumber,
+        coordinatorName: vehicle.coordinatorName,
+        routeId: vehicle.routeId
+      }
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
