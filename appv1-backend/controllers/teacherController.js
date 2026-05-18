@@ -1,10 +1,12 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const Teacher = require('../models/Teacher');
 const Organization = require('../models/Organization');
 const JoinRequest = require('../models/JoinRequest');
 const Classroom = require('../models/Classroom');
+const ActiveSession = require('../models/ActiveSession');
 
 const generateTeacherId = () => `TCH_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 const generateRequestId = () => `REQ_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -44,8 +46,15 @@ exports.registerTeacher = async (req, res) => {
       verified: false     // Always false on register
     });
 
+    const sessionToken = crypto.randomBytes(16).toString('hex');
+    await ActiveSession.findOneAndUpdate(
+      { userId: teacherId },
+      { sessionToken },
+      { upsert: true }
+    );
+
     const token = jwt.sign(
-      { teacherId, orgId, email, role: 'teacher' },
+      { teacherId, orgId, email, role: 'teacher', sessionToken },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
@@ -81,8 +90,15 @@ exports.loginTeacher = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    const sessionToken = crypto.randomBytes(16).toString('hex');
+    await ActiveSession.findOneAndUpdate(
+      { userId: teacher.teacherId },
+      { sessionToken },
+      { upsert: true }
+    );
+
     const token = jwt.sign(
-      { teacherId: teacher.teacherId, orgId: teacher.orgId, email, role: 'teacher' },
+      { teacherId: teacher.teacherId, orgId: teacher.orgId, email, role: 'teacher', sessionToken },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );

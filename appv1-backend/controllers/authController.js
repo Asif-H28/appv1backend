@@ -1,7 +1,9 @@
-const mongoose = require('mongoose');  // ← ADD THIS LINE
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const ActiveSession = require('../models/ActiveSession');
 
 exports.register = async (req, res) => {
   try {
@@ -22,8 +24,15 @@ exports.register = async (req, res) => {
     const user = new User({ name, email, password: hashedPassword });
     await user.save();
 
+    const sessionToken = crypto.randomBytes(16).toString('hex');
+    await ActiveSession.findOneAndUpdate(
+      { userId: user._id.toString() },
+      { sessionToken },
+      { upsert: true }
+    );
+
     const token = jwt.sign(
-      { userId: user._id }, 
+      { userId: user._id, sessionToken }, 
       process.env.JWT_SECRET, 
       { expiresIn: '7d' }
     );
@@ -52,8 +61,15 @@ exports.login = async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
+    const sessionToken = crypto.randomBytes(16).toString('hex');
+    await ActiveSession.findOneAndUpdate(
+      { userId: user._id.toString() },
+      { sessionToken },
+      { upsert: true }
+    );
+
     const token = jwt.sign(
-      { userId: user._id }, 
+      { userId: user._id, sessionToken }, 
       process.env.JWT_SECRET, 
       { expiresIn: '7d' }
     );

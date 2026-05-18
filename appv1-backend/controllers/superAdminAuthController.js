@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const SuperAdmin = require('../models/SuperAdmin');
+const ActiveSession = require('../models/ActiveSession');
 
 // SIGNUP SUPER ADMIN
 exports.signup = async (req, res) => {
@@ -52,8 +54,15 @@ exports.signin = async (req, res) => {
     }
 
     // Create Access Token (expires in 24h as requested "expire at some time")
+    const sessionToken = crypto.randomBytes(16).toString('hex');
+    await ActiveSession.findOneAndUpdate(
+      { userId: admin._id.toString() },
+      { sessionToken },
+      { upsert: true }
+    );
+
     const token = jwt.sign(
-      { adminId: admin._id, email: admin.email, role: 'super_admin' },
+      { adminId: admin._id, email: admin.email, role: 'super_admin', sessionToken },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );

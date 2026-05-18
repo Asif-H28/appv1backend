@@ -1,9 +1,11 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const Student = require('../models/Student');
 const Classroom = require('../models/Classroom');
 const ClassJoinRequest = require('../models/ClassJoinRequest');
 const Org = require('../models/Organization');
+const ActiveSession = require('../models/ActiveSession');
 
 const generateStudentId = () => `STU_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 const generateRequestId = () => `REQ_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -95,12 +97,20 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, student.password);
     if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
 
+    const sessionToken = crypto.randomBytes(16).toString('hex');
+    await ActiveSession.findOneAndUpdate(
+      { userId: student.studentId },
+      { sessionToken },
+      { upsert: true }
+    );
+
     const token = jwt.sign(
       { 
         studentId: student.studentId, 
         orgId: student.orgId || student.tempOrgId, 
         email: student.email, 
-        role: 'student' 
+        role: 'student',
+        sessionToken
       },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }

@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const ActiveSession = require('../models/ActiveSession');
 
-const auth = (req, res, next) => {
+const auth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
@@ -10,6 +11,18 @@ const auth = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // Contains orgId, role, etc.
+
+    // Single-device login validation
+    const identifier = decoded.studentId || decoded.teacherId || decoded.orgId || decoded.adminId || decoded.userId;
+    if (identifier) {
+      const session = await ActiveSession.findOne({ userId: identifier });
+      
+      // If no session exists or the session tokens do not match, the token is invalid (logged out or logged in elsewhere)
+      if (!session || session.sessionToken !== decoded.sessionToken) {
+        return res.status(401).json({ error: 'Session expired or logged in from another device', showLoginpage: true });
+      }
+    }
+
     next();
   } catch (error) {
     return res.status(401).json({ error: 'Invalid or expired token', showLoginpage: true });

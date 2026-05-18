@@ -1,12 +1,14 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const Organization = require('../models/Organization');
 const Teacher = require('../models/Teacher');
 const Classroom = require('../models/Classroom');
 const Student = require('../models/Student');
 const ClassJoinRequest = require('../models/ClassJoinRequest');
 const LicenseRequest = require('../models/LicenseRequest');
+const ActiveSession = require('../models/ActiveSession');
 
 // CREATE ORGANIZATION
 exports.createOrganization = async (req, res) => {
@@ -63,8 +65,15 @@ exports.createOrganization = async (req, res) => {
       adminEmail: adminEmail
     });
 
+    const sessionToken = crypto.randomBytes(16).toString('hex');
+    await ActiveSession.findOneAndUpdate(
+      { userId: orgId },
+      { sessionToken },
+      { upsert: true }
+    );
+
     const token = jwt.sign(
-      { orgId, adminEmail, role: 'admin' }, 
+      { orgId, adminEmail, role: 'admin', sessionToken }, 
       process.env.JWT_SECRET, 
       { expiresIn: '30d' }
     );
@@ -95,8 +104,15 @@ exports.adminLogin = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    const sessionToken = crypto.randomBytes(16).toString('hex');
+    await ActiveSession.findOneAndUpdate(
+      { userId: organization.orgId },
+      { sessionToken },
+      { upsert: true }
+    );
+
     const token = jwt.sign(
-      { orgId: organization.orgId, adminEmail, role: 'admin' }, 
+      { orgId: organization.orgId, adminEmail, role: 'admin', sessionToken }, 
       process.env.JWT_SECRET, 
       { expiresIn: '30d' }
     );
