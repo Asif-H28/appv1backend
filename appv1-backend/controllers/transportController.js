@@ -98,13 +98,19 @@ exports.createVehicle = async (req, res) => {
       return res.status(403).json({ success: false, error: 'Only a registered transport coordinator can create vehicles' });
     }
 
-    // 2. Generate unique vehicleId
+    // 2. Check if a vehicle with the same driver phone number already exists
+    const existingVehicleWithPhone = await Vehicle.findOne({ driverPhoneNumber });
+    if (existingVehicleWithPhone) {
+      return res.status(400).json({ success: false, error: 'Phone number is already assigned to a vehicle' });
+    }
+
+    // 3. Generate unique vehicleId
     let vehicleId = generateVehicleId();
     while (await Vehicle.findOne({ vehicleId })) {
       vehicleId = generateVehicleId();
     }
 
-    // 3. Create Vehicle
+    // 4. Create Vehicle
     const vehicle = await Vehicle.create({
       vehicleId,
       orgId,
@@ -144,6 +150,14 @@ exports.updateVehicle = async (req, res) => {
     const { vehicleId } = req.params;
     const { vehicleName, vehicleNumber, driverName, driverPhoneNumber, routeId } = req.body;
 
+    // Check if phone number is already assigned to another vehicle
+    if (driverPhoneNumber) {
+      const existingVehicle = await Vehicle.findOne({ driverPhoneNumber, vehicleId: { $ne: vehicleId } });
+      if (existingVehicle) {
+        return res.status(400).json({ success: false, error: 'Phone number is already assigned to another vehicle' });
+      }
+    }
+
     const updatedVehicle = await Vehicle.findOneAndUpdate(
       { vehicleId },
       { 
@@ -182,6 +196,9 @@ exports.deleteVehicle = async (req, res) => {
     if (!deletedVehicle) {
       return res.status(404).json({ success: false, error: 'Vehicle not found' });
     }
+
+    // Delete location data from vehiclelocations collection
+    await VehicleLocation.deleteOne({ vehicleId });
 
     res.json({
       success: true,
