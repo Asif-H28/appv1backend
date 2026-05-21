@@ -30,6 +30,7 @@ const io = new Server(server, {
 });
 
 require('./sockets/chatSocket')(io);
+require('./sockets/notificationSocket').init(io);
 
 // Attach io to request for use in routes if needed
 app.set('io', io);
@@ -126,6 +127,7 @@ app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/timetable', require('./routes/timetable'));
 app.use('/api/join', require('./routes/classJoin'));
 app.use('/api/notification', require('./routes/notification'));
+app.use('/api/notification-studio', require('./routes/notificationStudio'));
 app.use('/api/leave', require('./routes/leave'));
 app.use('/api/achievement', require('./routes/achievement'));
 app.use('/api/admin-notices', require('./routes/adminNoticeRoutes'));
