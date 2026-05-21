@@ -5,6 +5,7 @@ const Student      = require('../models/Student');
 const Notification = require('../models/Notification');
 const { cloudinary } = require('../config/cloudinary');
 const admin          = require('../config/firebase');
+const notificationSocket = require('../sockets/notificationSocket');
 
 const generateNoticeId = () =>
   `ANTC_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -145,15 +146,25 @@ exports.createAdminNotice = async (req, res) => {
 
       if (audience === 'teachers_only') {
         // Notify all teachers in the org
-        const teachers = await Teacher.find({ orgId }, 'fcmToken');
+        const teachers = await Teacher.find({ orgId }, 'teacherId fcmToken');
         const tokens = teachers.map(t => t.fcmToken).filter(Boolean);
         await sendFcmToTokens(tokens, fcmTitle, fcmBody, fcmData);
 
+        // Send in-app notifications via Socket.IO
+        for (const teacher of teachers) {
+          await notificationSocket.sendNotification(teacher.teacherId, fcmTitle, fcmBody, fcmData);
+        }
+
       } else if (audience === 'teachers_and_students') {
         // Step 1: Notify all teachers in org
-        const teachers = await Teacher.find({ orgId }, 'fcmToken');
+        const teachers = await Teacher.find({ orgId }, 'teacherId fcmToken');
         const teacherTokens = teachers.map(t => t.fcmToken).filter(Boolean);
         await sendFcmToTokens(teacherTokens, fcmTitle, fcmBody, fcmData);
+
+        // Send in-app notifications to teachers via Socket.IO
+        for (const teacher of teachers) {
+          await notificationSocket.sendNotification(teacher.teacherId, fcmTitle, fcmBody, fcmData);
+        }
 
         // Step 2: Notify students based on scope
         let classIds = [];
@@ -168,10 +179,15 @@ exports.createAdminNotice = async (req, res) => {
         // Get all student FCM tokens for those classes
         const students = await Student.find(
           { classId: { $in: classIds }, joinStatus: 'approved' },
-          'fcmToken'
+          'studentId fcmToken'
         );
         const studentTokens = students.map(s => s.fcmToken).filter(Boolean);
         await sendFcmToTokens(studentTokens, fcmTitle, fcmBody, fcmData);
+
+        // Send in-app notifications to students via Socket.IO
+        for (const student of students) {
+          await notificationSocket.sendNotification(student.studentId, fcmTitle, fcmBody, fcmData);
+        }
       }
 
       console.log(`✅ Admin notice notifications sent — audience: ${audience}`);

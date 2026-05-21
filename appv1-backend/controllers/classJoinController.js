@@ -77,6 +77,14 @@ exports.approveRequest = async (req, res) => {
         sentByName: 'System',
         data: { route: '/home' }
       });
+
+      const notificationSocket = require('../sockets/notificationSocket');
+      await notificationSocket.sendNotification(
+        request.studentId,
+        `🎉 Join Request Approved!`,
+        `You have been added to ${request.className}`,
+        { route: '/home' }
+      );
     } catch (notifyError) {
       console.log('Notification failed (non-critical):', notifyError.message);
     }
@@ -125,6 +133,14 @@ exports.rejectRequest = async (req, res) => {
         sentByName: 'System',
         data: { route: '/home' }
       });
+
+      const notificationSocket = require('../sockets/notificationSocket');
+      await notificationSocket.sendNotification(
+        request.studentId,
+        `❌ Join Request Rejected`,
+        `Your request to join ${request.className} was rejected`,
+        { route: '/home' }
+      );
     } catch (notifyError) {
       console.log('Notification failed (non-critical):', notifyError.message);
     }

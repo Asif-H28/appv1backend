@@ -5,12 +5,12 @@ const notificationSocket = require('../sockets/notificationSocket');
  * Helper to retrieve actual userId from authenticated request token.
  */
 const getUserIdFromRequest = (req) => {
-  return req.user?.studentId || 
-         req.user?.teacherId || 
-         req.user?.orgId || 
-         req.user?.adminId || 
-         req.user?.userId || 
-         req.user?.id;
+  return req.user?.studentId ||
+    req.user?.teacherId ||
+    req.user?.orgId ||
+    req.user?.adminId ||
+    req.user?.userId ||
+    req.user?.id;
 };
 
 /**
@@ -143,3 +143,27 @@ exports.deleteOldNotifications = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+/**
+ * Test trigger endpoint to push a notification via Socket.IO
+ * POST /api/notification-studio/test-trigger
+ */
+exports.testTrigger = async (req, res) => {
+  try {
+    const { recipientId, title, body, data } = req.body;
+    if (!recipientId || !title || !body) {
+      return res.status(400).json({ error: 'recipientId, title, and body are required' });
+    }
+
+    await notificationSocket.sendNotification(recipientId, title, body, data || {});
+
+    res.json({
+      success: true,
+      message: 'Notification pushed successfully'
+    });
+  } catch (err) {
+    console.error('❌ Error in testTrigger:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

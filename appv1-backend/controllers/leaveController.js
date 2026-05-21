@@ -7,6 +7,7 @@ const Organization  = require("../models/Organization");
 const Notification  = require("../models/Notification");
 const admin         = require("../config/firebase");
 const { notifyStudent, notifyClass } = require("../utils/sendNotification");
+const notificationSocket = require("../sockets/notificationSocket");
 
 const generateNotificationId = () =>
   `NTF_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -108,6 +109,9 @@ exports.teacherApplyLeave = async (req, res) => {
         data:        notifData,
       });
       console.log("✅ Notification record saved to DB");
+
+      // ✅ Send in-app notification via Socket.IO
+      await notificationSocket.sendNotification(orgId, notifTitle, notifBody, notifData);
     } catch (notifyError) {
       console.error("❌ Admin notification FULL ERROR:", notifyError);
     }
@@ -240,6 +244,9 @@ exports.reviewTeacherLeave = async (req, res) => {
         data:        notifData,
       });
       console.log("✅ Notification record saved to DB");
+
+      // ✅ Send in-app notification via Socket.IO
+      await notificationSocket.sendNotification(leave.teacherId, notifTitle, notifBody, notifData);
     } catch (notifyError) {
       console.error("❌ Teacher notification FULL ERROR:", notifyError);
     }
@@ -378,6 +385,15 @@ exports.studentApplyLeave = async (req, res) => {
       });
       console.log("✅ Student leave notification record saved to DB");
 
+      // ✅ Send in-app notification via Socket.IO
+      await notificationSocket.sendNotification(classroom.teacherId, `📋 New Leave Request`, `${student.name} has applied for ${leave.totalDays} day(s) leave`, {
+        route:     "leave-requests",
+        leaveId:   leave.leaveId,
+        studentId: student.studentId,
+        classId:   student.classId,
+        teacherId: classroom.teacherId
+      });
+
     } catch (notifyError) {
       console.error("❌ Class Teacher notification FULL ERROR:", notifyError);
     }
@@ -502,6 +518,16 @@ exports.reviewStudentLeave = async (req, res) => {
       });
 
       console.log(`✅ Student ${leave.studentId} notified — leave ${status}`);
+
+      // ✅ Send in-app notification via Socket.IO
+      await notificationSocket.sendNotification(
+        leave.studentId,
+        status === "approved" ? `✅ Leave Approved` : `❌ Leave Rejected`,
+        status === "approved"
+          ? `Your leave for ${leave.totalDays} day(s) has been approved`
+          : `Your leave request was rejected. ${reviewNote || ""}`,
+        { route: "/leaves", leaveId: leave.leaveId }
+      );
     } catch (notifyError) {
       console.error("❌ Student notification FULL ERROR:", notifyError);
     }

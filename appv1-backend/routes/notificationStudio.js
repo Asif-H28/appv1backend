@@ -5,7 +5,8 @@ const {
   getNotifications,
   markAllAsRead,
   markSingleAsRead,
-  deleteOldNotifications
+  deleteOldNotifications,
+  testTrigger
 } = require('../controllers/notificationStudioController');
 
 const auth = require('../middleware/auth');
@@ -26,5 +27,8 @@ router.put('/:id/read', markSingleAsRead);
 
 // DELETE /api/notification-studio/old - Purge notifications older than 7 days
 router.delete('/old', deleteOldNotifications);
+
+// POST /api/notification-studio/test-trigger - Trigger a test notification via socket
+router.post('/test-trigger', testTrigger);
 
 module.exports = router;

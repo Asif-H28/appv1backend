@@ -6,6 +6,7 @@ const Classroom = require('../models/Classroom');
 const ClassJoinRequest = require('../models/ClassJoinRequest');
 const Org = require('../models/Organization');
 const ActiveSession = require('../models/ActiveSession');
+const notificationSocket = require('../sockets/notificationSocket');
 
 const generateStudentId = () => `STU_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 const generateRequestId = () => `REQ_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -235,6 +236,19 @@ exports.sendJoinRequest = async (req, res) => {
     student.joinStatus = 'pending';
     student.classId = classId;
     await student.save();
+
+    // ✅ Send in-app notification to the class teacher via Socket.IO
+    try {
+      await notificationSocket.sendNotification(
+        classroom.teacherId,
+        `🔔 New Class Join Request`,
+        `${student.name} has requested to join class ${classroom.className}`,
+        { route: "join-requests", requestId: joinRequest.requestId, classId: classId }
+      );
+      console.log(`✅ Teacher ${classroom.teacherId} notified — join request ${joinRequest.requestId}`);
+    } catch (notifyError) {
+      console.error('Teacher join request socket notification failed:', notifyError.message);
+    }
 
     res.status(201).json({
       success: true,

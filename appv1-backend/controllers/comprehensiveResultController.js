@@ -2,6 +2,7 @@ const ComprehensiveResult = require('../models/ComprehensiveResult');
 const ComprehensiveAssessment = require('../models/ComprehensiveAssessment');
 const ExcelJS = require('exceljs');
 const crypto = require('crypto');
+const notificationSocket = require('../sockets/notificationSocket');
 
 // Create or update a single student's result
 exports.createOrUpdateResult = async (req, res) => {
@@ -83,6 +84,19 @@ exports.createOrUpdateResult = async (req, res) => {
       existingResult.publishedAt = Date.now();
 
       await existingResult.save();
+
+      // ✅ Send in-app notification via Socket.IO
+      try {
+        await notificationSocket.sendNotification(
+          studentId,
+          `📊 Result Published: ${assessment.title}`,
+          `Your result for ${assessment.title} has been updated. Score: ${percentage}% (${overallGrade || existingResult.overallGrade || ''})`,
+          { route: '/results', assessmentId }
+        );
+      } catch (notifyError) {
+        console.error('Result notification failed:', notifyError.message);
+      }
+
       return res.status(200).json({ message: 'Result updated successfully', result: existingResult });
     } else {
       const resultId = `CR-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
@@ -110,6 +124,19 @@ exports.createOrUpdateResult = async (req, res) => {
       });
 
       await newResult.save();
+
+      // ✅ Send in-app notification via Socket.IO
+      try {
+        await notificationSocket.sendNotification(
+          studentId,
+          `📊 Result Published: ${assessment.title}`,
+          `Your result for ${assessment.title} has been published. Score: ${percentage}% (${calculatedGrade})`,
+          { route: '/results', assessmentId }
+        );
+      } catch (notifyError) {
+        console.log('Result notification failed:', notifyError.message);
+      }
+
       return res.status(201).json({ message: 'Result created successfully', result: newResult });
     }
   } catch (error) {
@@ -374,6 +401,18 @@ exports.importResults = async (req, res) => {
         { $set: resultData, resultId: `CR-${crypto.randomBytes(4).toString('hex').toUpperCase()}` },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
+
+      // ✅ Send in-app notification via Socket.IO
+      try {
+        await notificationSocket.sendNotification(
+          studentId,
+          `📊 Result Published: ${assessment.title}`,
+          `Your result for ${assessment.title} has been published. Score: ${percentage}% (${finalOverallGrade})`,
+          { route: '/results', assessmentId }
+        );
+      } catch (notifyError) {
+        console.log('Imported result notification failed:', notifyError.message);
+      }
     }
 
     res.status(200).json({ success: true, message: 'Results imported successfully' });

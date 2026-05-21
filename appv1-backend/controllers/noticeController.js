@@ -56,6 +56,19 @@ exports.createNotice = async (req, res) => {
         sentByName: createdBy,
         data: { route: '/notices', noticeId: notice.noticeId }
       });
+
+      // ✅ Send in-app notification via Socket.IO to each approved student
+      const Student = require('../models/Student');
+      const approvedStudents = await Student.find({ classId: classroomId, joinStatus: 'approved' }, 'studentId');
+      const notificationSocket = require('../sockets/notificationSocket');
+      for (const std of approvedStudents) {
+        await notificationSocket.sendNotification(
+          std.studentId,
+          `📢 New Notice: ${title}`,
+          description.substring(0, 100),
+          { route: '/notices', noticeId: notice.noticeId }
+        );
+      }
     } catch (notifyError) {
       console.log('Notification failed (non-critical):', notifyError.message);
     }

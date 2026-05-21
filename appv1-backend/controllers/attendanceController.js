@@ -79,6 +79,18 @@ exports.createAttendance = async (req, res) => {
         sentByName: teacherName,
         data: { route: '/attendance', attendanceId: attendance.attendanceId }
       });
+
+      // ✅ Send in-app notification via Socket.IO to each absent student
+      const notificationSocket = require('../sockets/notificationSocket');
+      const absentStudents = students.filter(s => s.attendance === 'Absent');
+      for (const s of absentStudents) {
+        await notificationSocket.sendNotification(
+          s.studentId,
+          `⚠️ Absent Notification`,
+          `You were marked Absent today (${new Date(attendanceDate).toDateString()})`,
+          { route: '/attendance', attendanceId: attendance.attendanceId, date: attendanceDate }
+        );
+      }
     } catch (notifyError) {
       console.log('Notification failed (non-critical):', notifyError.message);
     }
@@ -257,6 +269,20 @@ exports.updateStudentAttendance = async (req, res) => {
     attendance.totalAbsent = totalAbsent;
 
     await attendance.save();
+
+    if (newAttendance === 'Absent') {
+      try {
+        const notificationSocket = require('../sockets/notificationSocket');
+        await notificationSocket.sendNotification(
+          studentId,
+          `⚠️ Absent Notification`,
+          `You were marked Absent on ${new Date(attendance.attendanceDate).toDateString()}`,
+          { route: '/attendance', attendanceId: attendance.attendanceId, date: attendance.attendanceDate }
+        );
+      } catch (notifyError) {
+        console.log('Notification failed (non-critical):', notifyError.message);
+      }
+    }
 
     res.json({
       success: true,
