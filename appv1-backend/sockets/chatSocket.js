@@ -96,8 +96,8 @@ module.exports = (io) => {
           // 5. Trigger FCM for all recipients (even if online)
           for (const recipient of recipients) {
             await sendPushNotification(recipient.userId, recipient.role, {
-              title: senderName || 'New Message',
-              body: text || 'Sent an attachment',
+              title: 'New Message',
+              body: 'You have a new message',
               conversationId
             });
           }
@@ -188,8 +188,8 @@ async function sendPushNotification(userId, role, payload) {
     if (user && user.fcmToken) {
       const message = {
         notification: {
-          title: payload.title,
-          body: payload.body
+          title: 'New Message',
+          body: 'You have a new message'
         },
         data: {
           conversationId: payload.conversationId,
