@@ -9,7 +9,8 @@ const {
   updateSlot,
   addSlot,
   removeSlot,
-  deleteTimetable
+  deleteTimetable,
+  getOngoingPeriodsByOrg
 } = require('../controllers/timetableController');
 
 const auth = require('../middleware/auth');
@@ -19,6 +20,7 @@ router.use(auth);
 router.use(checkOrgStatus);
 
 router.post('/create', createTimetable);
+router.get('/org/:orgId/ongoing', getOngoingPeriodsByOrg);
 router.get('/class/:classId', getTimetableByClass);
 router.get('/class/:classId/today', getTodayTimetable);
 router.get('/class/:classId/day/:day', getTimetableByDay);

@@ -378,3 +378,102 @@ exports.deleteTimetable = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// ─────────────────────────────────────────────
+// HELPER: Get current day and time in IST (UTC+5:30)
+// ─────────────────────────────────────────────
+const getISTDateTime = () => {
+  const options = {
+    timeZone: 'Asia/Kolkata',
+    hour12: false,
+    weekday: 'long',
+    hour: '2-digit',
+    minute: '2-digit'
+  };
+  const formatter = new Intl.DateTimeFormat('en-US', options);
+  const parts = formatter.formatToParts(new Date());
+
+  let weekday = '';
+  let hour = '';
+  let minute = '';
+  for (const part of parts) {
+    if (part.type === 'weekday') weekday = part.value;
+    if (part.type === 'hour') hour = part.value;
+    if (part.type === 'minute') minute = part.value;
+  }
+
+  const hourStr = String(hour).padStart(2, '0');
+  const minuteStr = String(minute).padStart(2, '0');
+
+  return { weekday, time: `${hourStr}:${minuteStr}` };
+};
+
+// ─────────────────────────────────────────────
+// GET ONGOING PERIODS FOR ALL CLASSROOMS BY ORG
+// ─────────────────────────────────────────────
+exports.getOngoingPeriodsByOrg = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    let { day, time } = req.query;
+
+    // Resolve day and time if not provided
+    if (!day || !time) {
+      const ist = getISTDateTime();
+      if (!day) day = ist.weekday;
+      if (!time) time = ist.time;
+    }
+
+    // Find all active classrooms for the organization
+    const classrooms = await Classroom.find({ orgId, isActive: true });
+
+    // Find all timetables for this organization
+    const timetables = await Timetable.find({ orgId });
+
+    // Map timetables by classId for O(1) lookup
+    const timetableMap = {};
+    for (const tt of timetables) {
+      timetableMap[tt.classId] = tt;
+    }
+
+    const classroomResults = classrooms.map(cls => {
+      const tt = timetableMap[cls.classId];
+      let ongoingPeriod = null;
+
+      if (tt && tt.slots && tt.slots.length > 0) {
+        // Find matching slot for the current day and time
+        const matchingSlot = tt.slots.find(slot => {
+          return slot.day === day &&
+                 time >= slot.startTime &&
+                 time <= slot.endTime;
+        });
+
+        if (matchingSlot) {
+          ongoingPeriod = {
+            periodNumber: matchingSlot.periodNumber,
+            startTime: matchingSlot.startTime,
+            endTime: matchingSlot.endTime,
+            subjectName: matchingSlot.subjectName,
+            teacherName: matchingSlot.teacherName,
+            teacherId: matchingSlot.teacherId,
+            type: matchingSlot.type
+          };
+        }
+      }
+
+      return {
+        classId: cls.classId,
+        className: cls.className,
+        ongoingPeriod
+      };
+    });
+
+    res.json({
+      success: true,
+      day,
+      time,
+      classrooms: classroomResults
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
