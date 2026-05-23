@@ -201,8 +201,9 @@ exports.sendJoinRequest = async (req, res) => {
     const classroom = await Classroom.findOne({ classId, isActive: true });
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
-    // Ensure class belongs to student's tempOrg
-    if (classroom.orgId !== student.tempOrgId) {
+    // Ensure class belongs to student's selected organization
+    const studentOrgId = student.orgId || student.tempOrgId;
+    if (classroom.orgId !== studentOrgId) {
       return res.status(403).json({ error: 'This class does not belong to your selected organization' });
     }
 
