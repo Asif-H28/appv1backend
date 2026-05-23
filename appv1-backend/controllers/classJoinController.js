@@ -196,7 +196,7 @@ exports.removeStudent = async (req, res) => {
 
     await Student.findOneAndUpdate(
       { studentId },
-      { joinStatus: 'none', classId: null, orgId: null }
+      { joinStatus: 'none', classId: null }
     );
 
     res.json({
