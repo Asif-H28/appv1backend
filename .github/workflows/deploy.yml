@@ -1,0 +1,48 @@
+name: Deploy to Azure Container Apps
+
+on:
+  push:
+    branches:
+      - main # Triggers the workflow on push to the main branch
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout Source Code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Log in to Azure
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # 3. Log in to Azure Container Registry (ACR)
+      - name: Log in to ACR
+        uses: azure/docker-login@v2
+        with:
+          login-server: reistryschoolsync.azurecr.io
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      # 4. Build and Push image to ACR (Using the commit SHA as the tag)
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t reistryschoolsync.azurecr.io/appv1-backend:${{ github.sha }} -t reistryschoolsync.azurecr.io/appv1-backend:latest ./appv1-backend
+          docker push reistryschoolsync.azurecr.io/appv1-backend:${{ github.sha }}
+          docker push reistryschoolsync.azurecr.io/appv1-backend:latest
+
+      # 5. Deploy the image to Azure Container Apps
+      - name: Deploy to Container App
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          acrName: reistryschoolsync
+          containerAppName: schoolsync-backend
+          resourceGroup: schoolsync
+          imageToDeploy: reistryschoolsync.azurecr.io/appv1-backend:${{ github.sha }}
