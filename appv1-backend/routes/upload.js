@@ -1,16 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { uploadImage, uploadPdf, uploadAny } = require('../config/cloudinary');
+const { upload } = require('../config/azureStorage');
 const { 
-  uploadImage: uploadImageCtrl,
-  uploadPdf: uploadPdfCtrl,
-  uploadAny: uploadAnyCtrl,
+  uploadImage,
+  uploadPdf,
+  uploadAny,
   deleteFile
 } = require('../controllers/uploadController');
 
-router.post('/image', uploadImage.single('file'), uploadImageCtrl);
-router.post('/pdf', uploadPdf.single('file'), uploadPdfCtrl);
-router.post('/any', uploadAny.single('file'), uploadAnyCtrl);
+router.post('/image', upload.single('file'), uploadImage);
+router.post('/pdf', upload.single('file'), uploadPdf);
+router.post('/any', upload.single('file'), uploadAny);
 router.delete('/delete', deleteFile);
 
 module.exports = router;
