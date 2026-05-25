@@ -470,7 +470,7 @@ exports.generateAISummary = async (req, res) => {
       : '  None recorded';
 
     const prompt = `
-You are an expert academic counselor. Analyse the following student result and produce a structured performance summary.
+You are an expert academic counselor. Analyse the following student result and produce a structured performance summary. The summary must be provided in TWO languages: English (by default) and Kannada (translated accurately).
 
 Student: ${result.studentName}
 Class: ${result.className}
@@ -487,11 +487,20 @@ ${coScholasticLines}
 
 Return ONLY a valid JSON object with exactly these keys:
 {
-  "overallSummary": "<2-3 sentence paragraph summarising the student's overall performance>",
-  "strengths": ["<strength 1>", "<strength 2>"],
-  "areasForImprovement": ["<area 1>", "<area 2>"],
-  "recommendations": ["<recommendation 1>", "<recommendation 2>", "<recommendation 3>"],
-  "motivationalNote": "<1 encouraging sentence for the student>"
+  "english": {
+    "overallSummary": "<2-3 sentence paragraph summarising the student's overall performance in English>",
+    "strengths": ["<strength 1 in English>", "<strength 2 in English>"],
+    "areasForImprovement": ["<area 1 in English>", "<area 2 in English>"],
+    "recommendations": ["<recommendation 1 in English>", "<recommendation 2 in English>", "<recommendation 3 in English>"],
+    "motivationalNote": "<1 encouraging sentence for the student in English>"
+  },
+  "kannada": {
+    "overallSummary": "<2-3 sentence paragraph summarising the student's overall performance in Kannada>",
+    "strengths": ["<strength 1 in Kannada>", "<strength 2 in Kannada>"],
+    "areasForImprovement": ["<area 1 in Kannada>", "<area 2 in Kannada>"],
+    "recommendations": ["<recommendation 1 in Kannada>", "<recommendation 2 in Kannada>", "<recommendation 3 in Kannada>"],
+    "motivationalNote": "<1 encouraging sentence for the student in Kannada>"
+  }
 }
 `.trim();
 
@@ -525,9 +534,14 @@ Return ONLY a valid JSON object with exactly these keys:
     const parsed = JSON.parse(jsonStr);
 
     // Validate required keys
+    if (!parsed.english || !parsed.kannada) {
+      throw new Error('Missing "english" or "kannada" keys in Groq response');
+    }
     const required = ['overallSummary', 'strengths', 'areasForImprovement', 'recommendations', 'motivationalNote'];
-    for (const key of required) {
-      if (!(key in parsed)) throw new Error(`Missing key "${key}" in Groq response`);
+    for (const lang of ['english', 'kannada']) {
+      for (const key of required) {
+        if (!(key in parsed[lang])) throw new Error(`Missing key "${key}" in "${lang}" in Groq response`);
+      }
     }
 
     // ── Persist summary ──
@@ -540,11 +554,20 @@ Return ONLY a valid JSON object with exactly these keys:
       studentName: result.studentName,
       classId: result.classId,
       orgId: result.orgId,
-      overallSummary: parsed.overallSummary,
-      strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
-      areasForImprovement: Array.isArray(parsed.areasForImprovement) ? parsed.areasForImprovement : [],
-      recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
-      motivationalNote: parsed.motivationalNote || '',
+      english: {
+        overallSummary: parsed.english.overallSummary,
+        strengths: Array.isArray(parsed.english.strengths) ? parsed.english.strengths : [],
+        areasForImprovement: Array.isArray(parsed.english.areasForImprovement) ? parsed.english.areasForImprovement : [],
+        recommendations: Array.isArray(parsed.english.recommendations) ? parsed.english.recommendations : [],
+        motivationalNote: parsed.english.motivationalNote || ''
+      },
+      kannada: {
+        overallSummary: parsed.kannada.overallSummary,
+        strengths: Array.isArray(parsed.kannada.strengths) ? parsed.kannada.strengths : [],
+        areasForImprovement: Array.isArray(parsed.kannada.areasForImprovement) ? parsed.kannada.areasForImprovement : [],
+        recommendations: Array.isArray(parsed.kannada.recommendations) ? parsed.kannada.recommendations : [],
+        motivationalNote: parsed.kannada.motivationalNote || ''
+      },
       rawResponse: jsonStr
     });
 

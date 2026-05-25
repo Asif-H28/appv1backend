@@ -1,5 +1,13 @@
 const mongoose = require('mongoose');
 
+const languageSummarySchema = new mongoose.Schema({
+  overallSummary:    { type: String, required: true },
+  strengths:         { type: [String], default: [] },
+  areasForImprovement: { type: [String], default: [] },
+  recommendations:   { type: [String], default: [] },
+  motivationalNote:  { type: String, default: '' },
+}, { _id: false });
+
 const resultAISummarySchema = new mongoose.Schema({
   summaryId:    { type: String, required: true, unique: true },
   assessmentId: { type: String, required: true },   // Links to ComprehensiveAssessment
@@ -9,12 +17,9 @@ const resultAISummarySchema = new mongoose.Schema({
   classId:      { type: String, required: true },
   orgId:        { type: String, required: true },
 
-  // The AI-generated content (structured fields parsed from Groq response)
-  overallSummary:    { type: String, required: true },
-  strengths:         { type: [String], default: [] },
-  areasForImprovement: { type: [String], default: [] },
-  recommendations:   { type: [String], default: [] },
-  motivationalNote:  { type: String, default: '' },
+  // Bilingual AI-generated content
+  english: { type: languageSummarySchema, required: true },
+  kannada: { type: languageSummarySchema, required: true },
 
   // Raw response stored as backup
   rawResponse: { type: String, default: '' },
