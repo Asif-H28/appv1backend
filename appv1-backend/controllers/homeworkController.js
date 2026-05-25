@@ -10,7 +10,7 @@ const generateHomeworkId = () => `HWK_${Math.random().toString(36).substr(2, 6).
 // CREATE HOMEWORK
 exports.createHomework = async (req, res) => {
   try {
-    const { title, subject, subjectId, createdBy, createdByName, deadline, orgId, classId, className } = req.body;
+    const { title, description, subject, subjectId, createdBy, createdByName, deadline, orgId, classId, className } = req.body;
 
     if (!title || !subject || !subjectId || !createdBy || !deadline || !orgId || !classId || !className) {
       return res.status(400).json({
@@ -68,6 +68,7 @@ exports.createHomework = async (req, res) => {
     const homework = await Homework.create({
       homeworkId,
       title,
+      description: description || '',
       subject,
       subjectId,
       createdBy,
@@ -79,13 +80,17 @@ exports.createHomework = async (req, res) => {
       attachments
     });
 
+    const notifBody = description 
+      ? (description.length > 100 ? description.substring(0, 97) + '...' : description)
+      : `Subject: ${subject} | Deadline: ${new Date(deadline).toLocaleDateString()}`;
+
     // Send FCM Push Notification to all students in the class
     try {
       await notifyClass({
         classId,
         orgId,
         title: `📝 New Homework: ${title}`,
-        body: `Subject: ${subject} | Deadline: ${new Date(deadline).toLocaleDateString()}`,
+        body: notifBody,
         type: 'general',
         sentBy: createdBy,
         sentByName: createdByName || 'Teacher',
@@ -102,7 +107,7 @@ exports.createHomework = async (req, res) => {
         await notificationSocket.sendNotification(
           std.studentId,
           `📝 New Homework: ${title}`,
-          `Subject: ${subject} | Deadline: ${new Date(deadline).toLocaleDateString()}`,
+          notifBody,
           { route: '/homework', homeworkId: homework.homeworkId }
         );
       }
@@ -207,16 +212,17 @@ exports.getHomework = async (req, res) => {
   }
 };
 
-// UPDATE HOMEWORK (updates title, subject, subjectId, deadline, and appends new attachments)
+// UPDATE HOMEWORK (updates title, description, subject, subjectId, deadline, and appends new attachments)
 exports.updateHomework = async (req, res) => {
   try {
     const { homeworkId } = req.params;
-    const { title, subject, subjectId, deadline } = req.body;
+    const { title, description, subject, subjectId, deadline } = req.body;
 
     const homework = await Homework.findOne({ homeworkId });
     if (!homework) return res.status(404).json({ error: 'Homework not found' });
 
     if (title) homework.title = title;
+    if (description !== undefined) homework.description = description;
     if (subject) homework.subject = subject;
     if (subjectId) homework.subjectId = subjectId;
     if (deadline) homework.deadline = new Date(deadline);

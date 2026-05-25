@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const homeworkSchema = new mongoose.Schema({
   homeworkId: { type: String, required: true, unique: true },
   title: { type: String, required: true, trim: true },
+  description: { type: String, default: '' },
   subject: { type: String, required: true, trim: true },
   subjectId: { type: String, required: true, trim: true },
   createdBy: { type: String, required: true, trim: true }, // teacherId or creator
