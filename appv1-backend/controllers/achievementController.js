@@ -92,11 +92,28 @@ exports.createAchievement = async (req, res) => {
 exports.getAchievementsByOrg = async (req, res) => {
   try {
     const { orgId } = req.params;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 3;
+    const skip = (page - 1) * limit;
+
+    const total = await Achievement.countDocuments({ orgId });
     const achievements = await Achievement
       .find({ orgId })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.json({ success: true, count: achievements.length, achievements });
+    res.json({
+      success: true,
+      count: achievements.length,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      },
+      achievements
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -108,11 +125,28 @@ exports.getAchievementsByOrg = async (req, res) => {
 exports.getAchievementsByClass = async (req, res) => {
   try {
     const { classId } = req.params;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 3;
+    const skip = (page - 1) * limit;
+
+    const total = await Achievement.countDocuments({ classId });
     const achievements = await Achievement
       .find({ classId })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.json({ success: true, count: achievements.length, achievements });
+    res.json({
+      success: true,
+      count: achievements.length,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      },
+      achievements
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
