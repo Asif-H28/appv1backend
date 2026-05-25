@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { uploadNoticeFiles } = require('../config/cloudinary');
+const { upload } = require('../config/azureStorage');
 const {
   createNotice,
   getNoticesByClassroom,
@@ -17,10 +17,10 @@ const checkOrgStatus = require('../middleware/checkOrgStatus');
 router.use(auth);
 router.use(checkOrgStatus);
 
-router.post('/create', uploadNoticeFiles.array('files', 5), createNotice);         // max 5 files
+router.post('/create', upload.array('files', 5), createNotice);         // max 5 files
 router.get('/classroom/:classId', getNoticesByClassroom);                          // auto-purge + get
 router.get('/:noticeId', getNotice);
-router.put('/:noticeId', uploadNoticeFiles.array('files', 5), updateNotice);
+router.put('/:noticeId', upload.array('files', 5), updateNotice);
 router.delete('/:noticeId/attachment', deleteAttachment);
 router.delete('/purge/:classId', purgeExpiredNotices);                             // manual purge trigger
 router.delete('/:noticeId', deleteNotice);

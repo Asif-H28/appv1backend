@@ -1,6 +1,6 @@
 const express = require('express');
 const router  = express.Router();
-const { uploadNoticeFiles } = require('../config/cloudinary');
+const { upload } = require('../config/azureStorage');
 const {
   createAdminNotice,
   getAdminNoticesByOrg,
@@ -20,9 +20,9 @@ router.use(auth);
 router.use(checkOrgStatus);
 
 // ── ADMIN ────────────────────────────────────────────────
-router.post('/create',                uploadNoticeFiles.array('files', 5), createAdminNotice);
+router.post('/create',                upload.array('files', 5), createAdminNotice);
 router.get('/org/:orgId',             getAdminNoticesByOrg);
-router.put('/:noticeId',              uploadNoticeFiles.array('files', 5), updateAdminNotice);
+router.put('/:noticeId',              upload.array('files', 5), updateAdminNotice);
 router.delete('/org/:orgId/all',      deleteAllAdminNotices);
 router.delete('/:noticeId/attachment',deleteAdminNoticeAttachment);
 router.delete('/:noticeId',           deleteAdminNotice);

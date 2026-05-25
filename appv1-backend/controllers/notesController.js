@@ -1,6 +1,6 @@
 const Notes = require('../models/Notes');
 const Classroom = require('../models/Classroom');
-const { cloudinary } = require('../config/cloudinary');
+const { uploadToAzure, deleteFromAzure, sharp } = require('../config/azureStorage');
 const { notifyClass } = require('../utils/sendNotification');  // ← ADDED
 
 const generateNotesId = () => `NTS_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -24,10 +24,31 @@ exports.createNote = async (req, res) => {
     const attachments = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
+        let buffer = file.buffer;
+        let mimeType = file.mimetype;
+        let name = file.originalname;
+
         const isPdf = file.mimetype === 'application/pdf';
+        const isImage = file.mimetype.startsWith('image/');
+        const folder = isImage ? 'images' : (isPdf ? 'pdfs' : 'docs');
+
+        if (isImage) {
+          try {
+            buffer = await sharp(file.buffer)
+              .resize({ width: 1000, withoutEnlargement: true })
+              .webp({ quality: 80 })
+              .toBuffer();
+            mimeType = 'image/webp';
+            name = name.replace(/\.[^/.]+$/, "") + ".webp";
+          } catch (sharpError) {
+            console.error('Sharp optimization failed, uploading raw image:', sharpError);
+          }
+        }
+
+        const uploadResult = await uploadToAzure(buffer, name, mimeType, `notes/${folder}`);
         attachments.push({
-          url: file.path,
-          publicId: file.filename,
+          url: uploadResult.url,
+          publicId: uploadResult.publicId,
           type: isPdf ? 'pdf' : 'image',
           filename: file.originalname
         });
@@ -124,10 +145,31 @@ exports.updateNote = async (req, res) => {
 
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
+        let buffer = file.buffer;
+        let mimeType = file.mimetype;
+        let name = file.originalname;
+
         const isPdf = file.mimetype === 'application/pdf';
+        const isImage = file.mimetype.startsWith('image/');
+        const folder = isImage ? 'images' : (isPdf ? 'pdfs' : 'docs');
+
+        if (isImage) {
+          try {
+            buffer = await sharp(file.buffer)
+              .resize({ width: 1000, withoutEnlargement: true })
+              .webp({ quality: 80 })
+              .toBuffer();
+            mimeType = 'image/webp';
+            name = name.replace(/\.[^/.]+$/, "") + ".webp";
+          } catch (sharpError) {
+            console.error('Sharp optimization failed, uploading raw image:', sharpError);
+          }
+        }
+
+        const uploadResult = await uploadToAzure(buffer, name, mimeType, `notes/${folder}`);
         note.attachments.push({
-          url: file.path,
-          publicId: file.filename,
+          url: uploadResult.url,
+          publicId: uploadResult.publicId,
           type: isPdf ? 'pdf' : 'image',
           filename: file.originalname
         });
@@ -152,9 +194,11 @@ exports.deleteAttachment = async (req, res) => {
     const note = await Notes.findOne({ notesId });
     if (!note) return res.status(404).json({ error: 'Note not found' });
 
-    await cloudinary.uploader.destroy(publicId, {
-      resource_type: resourceType === 'pdf' ? 'raw' : 'image'
-    });
+    try {
+      await deleteFromAzure(publicId);
+    } catch (azureErr) {
+      console.error('Azure deletion error (non-critical, might be Cloudinary asset):', azureErr.message);
+    }
 
     note.attachments = note.attachments.filter(a => a.publicId !== publicId);
     await note.save();
@@ -174,9 +218,11 @@ exports.deleteNote = async (req, res) => {
     if (!note) return res.status(404).json({ error: 'Note not found' });
 
     for (const att of note.attachments) {
-      await cloudinary.uploader.destroy(att.publicId, {
-        resource_type: att.type === 'pdf' ? 'raw' : 'image'
-      });
+      try {
+        await deleteFromAzure(att.publicId);
+      } catch (azureErr) {
+        console.error('Azure deletion error (non-critical):', azureErr.message);
+      }
     }
 
     await Notes.findOneAndDelete({ notesId });
@@ -203,9 +249,11 @@ exports.deleteNotesByClass = async (req, res) => {
 
     for (const note of notes) {
       for (const att of note.attachments) {
-        await cloudinary.uploader.destroy(att.publicId, {
-          resource_type: att.type === 'pdf' ? 'raw' : 'image'
-        });
+        try {
+          await deleteFromAzure(att.publicId);
+        } catch (azureErr) {
+          console.error('Azure deletion error (non-critical):', azureErr.message);
+        }
       }
     }
 

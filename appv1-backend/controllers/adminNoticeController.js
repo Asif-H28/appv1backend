@@ -3,7 +3,7 @@ const Classroom    = require('../models/Classroom');
 const Teacher      = require('../models/Teacher');
 const Student      = require('../models/Student');
 const Notification = require('../models/Notification');
-const { cloudinary } = require('../config/cloudinary');
+const { uploadToAzure, deleteFromAzure, sharp } = require('../config/azureStorage');
 const admin          = require('../config/firebase');
 const notificationSocket = require('../sockets/notificationSocket');
 
@@ -75,10 +75,17 @@ exports.createAdminNotice = async (req, res) => {
         });
       }
       if (targetScope === 'selected_classes') {
-        const ids = typeof targetClassIds === 'string'
-          ? JSON.parse(targetClassIds)
-          : targetClassIds;
-        if (!ids || ids.length === 0) {
+        let ids;
+        if (typeof targetClassIds === 'string') {
+          try {
+            ids = JSON.parse(targetClassIds);
+          } catch (e) {
+            ids = [targetClassIds];
+          }
+        } else {
+          ids = targetClassIds;
+        }
+        if (!ids || (Array.isArray(ids) && ids.length === 0) || ids === '') {
           return res.status(400).json({
             error: 'targetClassIds required when targetScope is "selected_classes"'
           });
@@ -107,12 +114,31 @@ exports.createAdminNotice = async (req, res) => {
     const attachments = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
+        let buffer = file.buffer;
+        let mimeType = file.mimetype;
+        let name = file.originalname;
+
         const isPdf = file.mimetype === 'application/pdf';
         const isImage = file.mimetype.startsWith('image/');
-        
+        const folder = isImage ? 'images' : (isPdf ? 'pdfs' : 'docs');
+
+        if (isImage) {
+          try {
+            buffer = await sharp(file.buffer)
+              .resize({ width: 1000, withoutEnlargement: true })
+              .webp({ quality: 80 })
+              .toBuffer();
+            mimeType = 'image/webp';
+            name = name.replace(/\.[^/.]+$/, "") + ".webp";
+          } catch (sharpError) {
+            console.error('Sharp optimization failed, uploading raw image:', sharpError);
+          }
+        }
+
+        const uploadResult = await uploadToAzure(buffer, name, mimeType, `admin-notices/${folder}`);
         attachments.push({
-          url:      file.path,
-          publicId: file.filename,
+          url:      uploadResult.url,
+          publicId: uploadResult.publicId,
           type:     isPdf ? 'pdf' : (isImage ? 'image' : 'pdf'), // Default non-images to 'pdf' category for UI
         });
       }
@@ -340,12 +366,31 @@ exports.updateAdminNotice = async (req, res) => {
     // Append new files
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
+        let buffer = file.buffer;
+        let mimeType = file.mimetype;
+        let name = file.originalname;
+
         const isPdf = file.mimetype === 'application/pdf';
         const isImage = file.mimetype.startsWith('image/');
+        const folder = isImage ? 'images' : (isPdf ? 'pdfs' : 'docs');
 
+        if (isImage) {
+          try {
+            buffer = await sharp(file.buffer)
+              .resize({ width: 1000, withoutEnlargement: true })
+              .webp({ quality: 80 })
+              .toBuffer();
+            mimeType = 'image/webp';
+            name = name.replace(/\.[^/.]+$/, "") + ".webp";
+          } catch (sharpError) {
+            console.error('Sharp optimization failed, uploading raw image:', sharpError);
+          }
+        }
+
+        const uploadResult = await uploadToAzure(buffer, name, mimeType, `admin-notices/${folder}`);
         notice.attachments.push({
-          url:      file.path,
-          publicId: file.filename,
+          url:      uploadResult.url,
+          publicId: uploadResult.publicId,
           type:     isPdf ? 'pdf' : (isImage ? 'image' : 'pdf'),
         });
       }
@@ -366,14 +411,16 @@ exports.updateAdminNotice = async (req, res) => {
 exports.deleteAdminNoticeAttachment = async (req, res) => {
   try {
     const { noticeId }              = req.params;
-    const { publicId, resourceType } = req.body;
+    const { publicId } = req.body;
 
     const notice = await AdminNotice.findOne({ noticeId });
     if (!notice) return res.status(404).json({ error: 'Notice not found' });
 
-    await cloudinary.uploader.destroy(publicId, {
-      resource_type: resourceType === 'pdf' ? 'raw' : 'image'
-    });
+    try {
+      await deleteFromAzure(publicId);
+    } catch (azureErr) {
+      console.error('Azure deletion error (non-critical, might be Cloudinary asset):', azureErr.message);
+    }
 
     notice.attachments = notice.attachments.filter(a => a.publicId !== publicId);
     await notice.save();
@@ -396,9 +443,11 @@ exports.deleteAdminNotice = async (req, res) => {
     if (!notice) return res.status(404).json({ error: 'Notice not found' });
 
     for (const att of notice.attachments) {
-      await cloudinary.uploader.destroy(att.publicId, {
-        resource_type: att.type === 'pdf' ? 'raw' : 'image'
-      });
+      try {
+        await deleteFromAzure(att.publicId);
+      } catch (azureErr) {
+        console.error('Azure deletion error (non-critical):', azureErr.message);
+      }
     }
 
     await AdminNotice.findOneAndDelete({ noticeId });
@@ -420,9 +469,11 @@ exports.deleteAllAdminNotices = async (req, res) => {
 
     for (const notice of notices) {
       for (const att of notice.attachments) {
-        await cloudinary.uploader.destroy(att.publicId, {
-          resource_type: att.type === 'pdf' ? 'raw' : 'image'
-        });
+        try {
+          await deleteFromAzure(att.publicId);
+        } catch (azureErr) {
+          console.error('Azure deletion error (non-critical):', azureErr.message);
+        }
       }
     }
 

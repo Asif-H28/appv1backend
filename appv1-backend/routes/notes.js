@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { uploadNotesFiles } = require('../config/cloudinary');
+const { upload } = require('../config/azureStorage');
 const {
   createNote,
   getNotesByClass,
@@ -18,11 +18,11 @@ const checkOrgStatus = require('../middleware/checkOrgStatus');
 router.use(auth);
 router.use(checkOrgStatus);
 
-router.post('/create', uploadNotesFiles.array('files', 10), createNote);  // max 10 files
+router.post('/create', upload.array('files', 10), createNote);  // max 10 files
 router.get('/class/:classId', getNotesByClass);
 router.get('/org/:orgId', getNotesByOrg);
 router.get('/:notesId', getNote);
-router.put('/:notesId', uploadNotesFiles.array('files', 10), updateNote);
+router.put('/:notesId', upload.array('files', 10), updateNote);
 router.delete('/:notesId/attachment', deleteAttachment);
 router.delete('/class/:classId/all', deleteNotesByClass);
 router.delete('/:notesId', deleteNote);

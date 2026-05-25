@@ -1,6 +1,6 @@
 const Notice = require('../models/Notice');
 const Classroom = require('../models/Classroom');
-const { cloudinary } = require('../config/cloudinary');
+const { uploadToAzure, deleteFromAzure, sharp } = require('../config/azureStorage');
 const { notifyClass } = require('../utils/sendNotification');  // ← ADD THIS
 
 const generateNoticeId = () => `NTC_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -20,10 +20,31 @@ exports.createNotice = async (req, res) => {
     const attachments = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
+        let buffer = file.buffer;
+        let mimeType = file.mimetype;
+        let name = file.originalname;
+
         const isPdf = file.mimetype === 'application/pdf';
+        const isImage = file.mimetype.startsWith('image/');
+        const folder = isImage ? 'images' : (isPdf ? 'pdfs' : 'docs');
+
+        if (isImage) {
+          try {
+            buffer = await sharp(file.buffer)
+              .resize({ width: 1000, withoutEnlargement: true })
+              .webp({ quality: 80 })
+              .toBuffer();
+            mimeType = 'image/webp';
+            name = name.replace(/\.[^/.]+$/, "") + ".webp";
+          } catch (sharpError) {
+            console.error('Sharp optimization failed, uploading raw image:', sharpError);
+          }
+        }
+
+        const uploadResult = await uploadToAzure(buffer, name, mimeType, `notices/${folder}`);
         attachments.push({
-          url: file.path,
-          publicId: file.filename,
+          url: uploadResult.url,
+          publicId: uploadResult.publicId,
           type: isPdf ? 'pdf' : 'image'
         });
       }
@@ -91,9 +112,11 @@ exports.getNoticesByClassroom = async (req, res) => {
 
     for (const notice of expiredNotices) {
       for (const att of notice.attachments) {
-        await cloudinary.uploader.destroy(att.publicId, {
-          resource_type: att.type === 'pdf' ? 'raw' : 'image'
-        });
+        try {
+          await deleteFromAzure(att.publicId);
+        } catch (azureErr) {
+          console.error('Azure deletion error (non-critical):', azureErr.message);
+        }
       }
     }
 
@@ -142,10 +165,31 @@ exports.updateNotice = async (req, res) => {
 
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
+        let buffer = file.buffer;
+        let mimeType = file.mimetype;
+        let name = file.originalname;
+
         const isPdf = file.mimetype === 'application/pdf';
+        const isImage = file.mimetype.startsWith('image/');
+        const folder = isImage ? 'images' : (isPdf ? 'pdfs' : 'docs');
+
+        if (isImage) {
+          try {
+            buffer = await sharp(file.buffer)
+              .resize({ width: 1000, withoutEnlargement: true })
+              .webp({ quality: 80 })
+              .toBuffer();
+            mimeType = 'image/webp';
+            name = name.replace(/\.[^/.]+$/, "") + ".webp";
+          } catch (sharpError) {
+            console.error('Sharp optimization failed, uploading raw image:', sharpError);
+          }
+        }
+
+        const uploadResult = await uploadToAzure(buffer, name, mimeType, `notices/${folder}`);
         notice.attachments.push({
-          url: file.path,
-          publicId: file.filename,
+          url: uploadResult.url,
+          publicId: uploadResult.publicId,
           type: isPdf ? 'pdf' : 'image'
         });
       }
@@ -167,9 +211,11 @@ exports.deleteAttachment = async (req, res) => {
     const notice = await Notice.findOne({ noticeId });
     if (!notice) return res.status(404).json({ error: 'Notice not found' });
 
-    await cloudinary.uploader.destroy(publicId, {
-      resource_type: resourceType === 'pdf' ? 'raw' : 'image'
-    });
+    try {
+      await deleteFromAzure(publicId);
+    } catch (azureErr) {
+      console.error('Azure deletion error (non-critical, might be Cloudinary asset):', azureErr.message);
+    }
 
     notice.attachments = notice.attachments.filter(a => a.publicId !== publicId);
     await notice.save();
@@ -188,9 +234,11 @@ exports.deleteNotice = async (req, res) => {
     if (!notice) return res.status(404).json({ error: 'Notice not found' });
 
     for (const att of notice.attachments) {
-      await cloudinary.uploader.destroy(att.publicId, {
-        resource_type: att.type === 'pdf' ? 'raw' : 'image'
-      });
+      try {
+        await deleteFromAzure(att.publicId);
+      } catch (azureErr) {
+        console.error('Azure deletion error (non-critical):', azureErr.message);
+      }
     }
 
     await Notice.findOneAndDelete({ noticeId });
@@ -216,9 +264,11 @@ exports.purgeExpiredNotices = async (req, res) => {
 
     for (const notice of expiredNotices) {
       for (const att of notice.attachments) {
-        await cloudinary.uploader.destroy(att.publicId, {
-          resource_type: att.type === 'pdf' ? 'raw' : 'image'
-        });
+        try {
+          await deleteFromAzure(att.publicId);
+        } catch (azureErr) {
+          console.error('Azure deletion error (non-critical):', azureErr.message);
+        }
       }
     }
 
