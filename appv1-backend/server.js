@@ -122,6 +122,7 @@ app.use('/api/chat', require('./routes/chat'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/notice', require('./routes/notice'));
 app.use('/api/notes', require('./routes/notes'));
+app.use('/api/homework', require('./routes/homework'));
 app.use('/api/test', require('./routes/test'));
 app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/timetable', require('./routes/timetable'));
