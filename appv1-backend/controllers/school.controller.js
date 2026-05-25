@@ -175,3 +175,48 @@ exports.deleteRole = async (req, res) => {
     return res.status(500).json({ success: false, message: e.message });
   }
 };
+
+// GET /api/org/school/:orgId/public
+exports.getPublicProfile = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    if (!orgId) {
+      return res.status(400).json({ success: false, message: 'orgId is required.' });
+    }
+
+    // Fetch SchoolBasic details
+    const schoolBasic = await SchoolBasic.findOne({ orgId });
+    
+    // Fetch Organization details as fallback for name/address if SchoolBasic doesn't exist
+    let schoolName = '';
+    let address = '';
+    if (schoolBasic) {
+      schoolName = schoolBasic.schoolName;
+      address = schoolBasic.campusAddress;
+    } else {
+      const org = await require('../models/Organization').findOne({ orgId });
+      if (org) {
+        schoolName = org.schoolName || org.name || '';
+        address = org.campusAddress || org.address || '';
+      }
+    }
+
+    // Fetch Roles
+    const roles = await Role.find({ orgId }).sort({ createdAt: -1 });
+
+    // Fetch Fee Structures
+    const feeStructures = await FeeStructure.find({ orgId }).sort({ createdAt: -1 });
+
+    return res.json({
+      success: true,
+      data: {
+        schoolName,
+        address,
+        roles,
+        feeStructures
+      }
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+};

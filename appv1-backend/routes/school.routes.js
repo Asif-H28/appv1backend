@@ -2,6 +2,9 @@ const express = require('express');
 const router  = express.Router();
 const C       = require('../controllers/school.controller');
 
+// Public Profile Details
+router.get ('/:orgId/public',  C.getPublicProfile);
+
 // Basic Details
 router.get ('/basic',          C.getBasicDetails);
 router.put ('/basic',          C.upsertBasicDetails);
