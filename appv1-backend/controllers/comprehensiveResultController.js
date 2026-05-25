@@ -1,7 +1,9 @@
 const ComprehensiveResult = require('../models/ComprehensiveResult');
 const ComprehensiveAssessment = require('../models/ComprehensiveAssessment');
+const ResultAISummary = require('../models/ResultAISummary');
 const ExcelJS = require('exceljs');
 const crypto = require('crypto');
+const Groq = require('groq-sdk');
 const notificationSocket = require('../sockets/notificationSocket');
 
 // Create or update a single student's result
@@ -421,3 +423,151 @@ exports.importResults = async (req, res) => {
     res.status(500).json({ error: 'Server error importing results' });
   }
 };
+
+// ─── AI SUMMARY ────────────────────────────────────────────────────────────
+
+// POST /summary/:studentId/:assessmentId
+// One-time action: generates an AI performance summary for a student's result
+// and persists it. On repeated calls for the same student+assessment returns 409.
+exports.generateAISummary = async (req, res) => {
+  try {
+    const { studentId, assessmentId } = req.params;
+
+    // ── Guard: already generated? ──
+    const existing = await ResultAISummary.findOne({ assessmentId, studentId });
+    if (existing) {
+      return res.status(409).json({
+        alreadyGenerated: true,
+        message: 'AI summary already exists for this student and assessment',
+        summary: existing
+      });
+    }
+
+    // ── Fetch result ──
+    const result = await ComprehensiveResult.findOne({ assessmentId, studentId });
+    if (!result) {
+      return res.status(404).json({ error: 'Result not found for this student and assessment' });
+    }
+
+    // ── Fetch assessment for max marks context ──
+    const assessment = await ComprehensiveAssessment.findOne({ assessmentId });
+    if (!assessment) {
+      return res.status(404).json({ error: 'Assessment not found' });
+    }
+
+    // ── Build structured prompt ──
+    const scholasticLines = result.scholasticResults.map(s => {
+      const subjectDef = assessment.scholasticSubjects.find(d => d.subjectName === s.subjectName);
+      const maxMarks = subjectDef ? subjectDef.totalMaximumScore : '?';
+      const passScore = subjectDef ? subjectDef.minimumPassScore : '?';
+      return `  - ${s.subjectName}: ${s.totalMarksScored}/${maxMarks} (Pass Score: ${passScore}) | Grade: ${s.grade || 'N/A'} | Status: ${s.status.toUpperCase()}${s.remarks ? ` | Remarks: ${s.remarks}` : ''}`;
+    }).join('\n');
+
+    const coScholasticLines = result.coScholasticResults.length > 0
+      ? result.coScholasticResults.map(a =>
+          `  - ${a.activityName}: Grade ${a.grade || 'N/A'}${a.remarks ? ` | Remarks: ${a.remarks}` : ''}`
+        ).join('\n')
+      : '  None recorded';
+
+    const prompt = `
+You are an expert academic counselor. Analyse the following student result and produce a structured performance summary.
+
+Student: ${result.studentName}
+Class: ${result.className}
+Assessment: ${result.title}
+Overall Score: ${result.overallTotalScored}/${result.overallTotalMaximum} (${result.percentage}%)
+Overall Grade: ${result.overallGrade || 'N/A'}
+Overall Status: ${result.overallStatus.toUpperCase()}
+
+Scholastic (Academic) Results:
+${scholasticLines}
+
+Co-Scholastic (Activities) Results:
+${coScholasticLines}
+
+Return ONLY a valid JSON object with exactly these keys:
+{
+  "overallSummary": "<2-3 sentence paragraph summarising the student's overall performance>",
+  "strengths": ["<strength 1>", "<strength 2>"],
+  "areasForImprovement": ["<area 1>", "<area 2>"],
+  "recommendations": ["<recommendation 1>", "<recommendation 2>", "<recommendation 3>"],
+  "motivationalNote": "<1 encouraging sentence for the student>"
+}
+`.trim();
+
+    // ── Call Groq ──
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert academic counselor. Always respond with a valid JSON object only. No markdown, no code blocks, no preamble, no text outside the JSON.'
+        },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.6
+    });
+
+    let rawText = completion.choices[0].message.content || '';
+    console.log('Groq AI summary raw (first 300 chars):', rawText.substring(0, 300));
+
+    // Strip accidental markdown wrappers
+    rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+    // Extract only the JSON object
+    const startIdx = rawText.indexOf('{');
+    const endIdx = rawText.lastIndexOf('}');
+    if (startIdx === -1 || endIdx === -1) {
+      throw new Error('Groq response did not contain a valid JSON object');
+    }
+    const jsonStr = rawText.substring(startIdx, endIdx + 1);
+    const parsed = JSON.parse(jsonStr);
+
+    // Validate required keys
+    const required = ['overallSummary', 'strengths', 'areasForImprovement', 'recommendations', 'motivationalNote'];
+    for (const key of required) {
+      if (!(key in parsed)) throw new Error(`Missing key "${key}" in Groq response`);
+    }
+
+    // ── Persist summary ──
+    const summaryId = `AIS-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const summary = await ResultAISummary.create({
+      summaryId,
+      assessmentId,
+      resultId: result.resultId,
+      studentId,
+      studentName: result.studentName,
+      classId: result.classId,
+      orgId: result.orgId,
+      overallSummary: parsed.overallSummary,
+      strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+      areasForImprovement: Array.isArray(parsed.areasForImprovement) ? parsed.areasForImprovement : [],
+      recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+      motivationalNote: parsed.motivationalNote || '',
+      rawResponse: jsonStr
+    });
+
+    res.status(201).json({ success: true, summary });
+  } catch (error) {
+    console.error('Error generating AI summary:', error.message);
+    res.status(500).json({ error: 'Failed to generate AI summary: ' + error.message });
+  }
+};
+
+// GET /summary/:studentId/:assessmentId
+// Returns the stored AI summary (if generated) so the UI can display it directly
+exports.getAISummary = async (req, res) => {
+  try {
+    const { studentId, assessmentId } = req.params;
+    const summary = await ResultAISummary.findOne({ assessmentId, studentId });
+    if (!summary) {
+      return res.status(404).json({ exists: false, message: 'No AI summary found. Please generate one first.' });
+    }
+    res.status(200).json({ exists: true, summary });
+  } catch (error) {
+    console.error('Error fetching AI summary:', error.message);
+    res.status(500).json({ error: 'Server error fetching AI summary' });
+  }
+};
+
