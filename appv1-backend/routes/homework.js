@@ -4,6 +4,7 @@ const { upload } = require('../config/azureStorage');
 const {
   createHomework,
   getHomeworkByClass,
+  getHomeworkByClassAndSubject,
   getHomeworkByOrg,
   getHomework,
   updateHomework,
@@ -21,6 +22,7 @@ router.use(checkOrgStatus);
 
 router.post('/create', upload.array('files', 10), createHomework);
 router.get('/class/:classId', getHomeworkByClass);
+router.get('/class/:classId/subject/:subjectId', getHomeworkByClassAndSubject);
 router.get('/org/:orgId', getHomeworkByOrg);
 router.get('/:homeworkId', getHomework);
 router.put('/:homeworkId', upload.array('files', 10), updateHomework);
@@ -29,3 +31,4 @@ router.delete('/class/:classId/all', deleteHomeworkByClass);
 router.delete('/:homeworkId', deleteHomework);
 
 module.exports = router;
+

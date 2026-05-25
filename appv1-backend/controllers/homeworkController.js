@@ -149,6 +149,41 @@ exports.getHomeworkByClass = async (req, res) => {
   }
 };
 
+// GET HOMEWORKS BY CLASSROOM AND SUBJECT (with optional pagination)
+exports.getHomeworkByClassAndSubject = async (req, res) => {
+  try {
+    const { classId, subjectId } = req.params;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+
+    const classroom = await Classroom.findOne({ classId, isActive: true });
+    if (!classroom) return res.status(404).json({ error: 'Classroom not found or inactive' });
+
+    const query = { classId, subjectId };
+    const total = await Homework.countDocuments(query);
+    const homeworks = await Homework.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      success: true,
+      count: homeworks.length,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      },
+      homeworks
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 // GET HOMEWORKS BY ORG
 exports.getHomeworkByOrg = async (req, res) => {
   try {
