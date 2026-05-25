@@ -103,8 +103,8 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/auth', require('./routes/authForgotPassword'));
 
 // Org routes (Public creation/login)
-app.use('/api/org', require('./routes/org'));
 app.use('/api/org/school', require('./routes/school.routes'));
+app.use('/api/org', require('./routes/org'));
 
 // Teacher routes
 app.use('/api/teacher', require('./routes/teacher'));
