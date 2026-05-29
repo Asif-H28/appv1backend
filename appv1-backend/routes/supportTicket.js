@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { createTicket, getTickets } = require('../controllers/supportTicketController');
+const { createTicket, getTickets, updateTicketStatus } = require('../controllers/supportTicketController');
 const { upload } = require('../config/azureStorage');
 const auth = require('../middleware/auth');
 const checkOrgStatus = require('../middleware/checkOrgStatus');
@@ -19,5 +19,9 @@ router.post('/issue', upload.array('images', 5), createTicket);
 // GET /api/support/org/:orgId/tickets
 // Query: ?all=true (admin only typically) to see all tickets, otherwise sees only user's tickets
 router.get('/org/:orgId/tickets', getTickets);
+
+// PATCH /api/support/ticket/:ticketId/status
+// Body: { "status": "Resolved" }
+router.patch('/ticket/:ticketId/status', updateTicketStatus);
 
 module.exports = router;

@@ -107,3 +107,37 @@ exports.getTickets = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.updateTicketStatus = async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const { status } = req.body;
+    const orgId = req.user?.orgId || req.body.orgId;
+
+    if (!orgId) {
+      return res.status(400).json({ error: 'orgId is required' });
+    }
+
+    if (!['Open', 'In Progress', 'Resolved'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be Open, In Progress, or Resolved.' });
+    }
+
+    const ticket = await SupportTicket.findOne({ ticketId, orgId });
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
+    ticket.status = status;
+    if (status === 'Resolved') {
+      ticket.resolvedAt = new Date();
+    } else {
+      ticket.resolvedAt = null;
+    }
+
+    await ticket.save();
+
+    res.json({ success: true, message: 'Ticket status updated', ticket });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
