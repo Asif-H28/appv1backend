@@ -125,7 +125,18 @@ exports.updateTicketStatus = async (req, res) => {
       return res.status(400).json({ error: 'Invalid status. Must be Open, In Progress, or Resolved.' });
     }
 
-    const ticket = await SupportTicket.findOne({ ticketId, orgId });
+    let query = {};
+    if (ticketId.match(/^[0-9a-fA-F]{24}$/)) {
+      query.$or = [{ _id: ticketId }, { ticketId: ticketId }];
+    } else {
+      query.ticketId = ticketId;
+    }
+
+    if (req.user?.role !== 'super_admin') {
+      query.orgId = orgId;
+    }
+
+    const ticket = await SupportTicket.findOne(query);
     if (!ticket) {
       return res.status(404).json({ error: 'Ticket not found' });
     }
