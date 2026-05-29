@@ -125,6 +125,7 @@ app.use('/api/notes', require('./routes/notes'));
 app.use('/api/homework', require('./routes/homework'));
 app.use('/api/test', require('./routes/test'));
 app.use('/api/attendance', require('./routes/attendance'));
+app.use('/api/teacher-attendance', require('./routes/teacherAttendance'));
 app.use('/api/timetable', require('./routes/timetable'));
 app.use('/api/join', require('./routes/classJoin'));
 app.use('/api/notification', require('./routes/notification'));
