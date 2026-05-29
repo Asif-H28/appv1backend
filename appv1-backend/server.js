@@ -143,6 +143,9 @@ app.use('/api/super-admin', require('./routes/superAdminAuth'));
 // License Key Request Routes
 app.use('/api/license-request', require('./routes/licenseRequestRoutes'));
 
+// Support Ticket Routes
+app.use('/api/support', require('./routes/supportTicket'));
+
 // Quiz Routes
 app.use('/api/quiz', require('./routes/quiz'));
 
