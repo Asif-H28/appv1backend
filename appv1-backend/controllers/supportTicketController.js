@@ -9,7 +9,7 @@ exports.createTicket = async (req, res) => {
     const { email, phoneNumber, description } = req.body;
     
     // We assume the user is authenticated via the auth middleware
-    const userId = req.user?.studentId || req.user?.teacherId || req.user?.adminId || req.user?.userId;
+    const userId = req.user?.studentId || req.user?.teacherId || req.user?.adminId || req.user?.userId || req.user?.adminEmail;
     const orgId = req.user?.orgId || req.body.orgId;
 
     if (!userId || !orgId) {
@@ -83,7 +83,7 @@ exports.createTicket = async (req, res) => {
 exports.getTickets = async (req, res) => {
   try {
     const orgId = req.params.orgId || req.user?.orgId;
-    const userId = req.user?.studentId || req.user?.teacherId || req.user?.adminId || req.user?.userId;
+    const userId = req.user?.studentId || req.user?.teacherId || req.user?.adminId || req.user?.userId || req.user?.adminEmail;
     const { all } = req.query; // If admin wants to see all tickets for the org
 
     if (!orgId) {
