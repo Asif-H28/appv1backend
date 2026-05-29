@@ -90,7 +90,10 @@ exports.getTickets = async (req, res) => {
       return res.status(400).json({ error: 'orgId is required' });
     }
 
-    let filter = { orgId };
+    let filter = {};
+    if (orgId !== 'all') {
+      filter.orgId = orgId;
+    }
 
     // Unless 'all=true' is passed, only show tickets for the logged in user
     if (all !== 'true') {

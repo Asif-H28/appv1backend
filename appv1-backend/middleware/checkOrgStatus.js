@@ -3,6 +3,11 @@ const Organization = require('../models/Organization');
 const checkOrgStatus = async (req, res, next) => {
   try {
     const orgId = req.user?.orgId;
+    
+    // Bypass org check for super admins
+    if (req.user?.role === 'super_admin') {
+      return next();
+    }
 
     if (!orgId) {
       return res.status(400).json({ error: 'Organization ID not found in token' });
