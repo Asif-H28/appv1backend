@@ -132,5 +132,71 @@ async function sendLicenseKeyEmail(toEmail, licenseKey, schoolName, name) {
     console.error('[Brevo] ❌ Error sending License Key:', error.message);
   }
 }
+async function sendStaffInvitationEmail(toEmail, orgName, inviteLink) {
+  try {
+    const apiKey = process.env.BREVO_API_KEY;
+    if (!apiKey) throw new Error("BREVO_API_KEY is not defined");
 
-module.exports = { sendOTPEmail, sendLicenseKeyEmail };
+    const senderEmail = process.env.GMAIL_USER || 'asif28072001@gmail.com';
+
+    const payload = {
+      sender: { name: "SchoolSync Support", email: senderEmail },
+      to: [{ email: toEmail }],
+      subject: `Invitation to join ${orgName} on SchoolSync`,
+      htmlContent: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:12px;background:#ffffff;">
+          <div style="text-align:center;margin-bottom:24px;">
+            <h1 style="color:#00796B;margin:0;">SchoolSync</h1>
+            <p style="color:#6b7280;margin:4px 0;">School Management Excellence</p>
+          </div>
+          
+          <p style="font-size:16px;color:#374151;">Hello,</p>
+          
+          <p style="font-size:15px;color:#4b5563;line-height:1.6;">
+            You have been invited to join <strong>${orgName}</strong> as a Support/Non-Teaching Staff member on SchoolSync.
+          </p>
+          
+          <div style="text-align:center;margin:32px 0;">
+            <a href="${inviteLink}" style="background-color:#00796B;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">Accept Invitation</a>
+          </div>
+          
+          <p style="font-size:14px;color:#6b7280;">
+            Or copy and paste this link into your browser:<br/>
+            <a href="${inviteLink}" style="color:#00796B;">${inviteLink}</a>
+          </p>
+          
+          <p style="font-size:14px;color:#6b7280;">
+            If you did not expect this invitation, you can safely ignore this email.
+          </p>
+          
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0;">
+          
+          <div style="text-align:center;">
+            <p style="color:#9ca3af;font-size:12px;margin:0;">&copy; ${new Date().getFullYear()} SchoolSync. All rights reserved.</p>
+          </div>
+        </div>
+      `
+    };
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': apiKey
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`Brevo API Error: ${response.status} - ${errorData}`);
+    }
+
+    console.log(`[Brevo] ✅ Invitation sent to ${toEmail}`);
+  } catch (error) {
+    console.error('[Brevo] ❌ Error sending invitation:', error.message);
+  }
+}
+
+module.exports = { sendOTPEmail, sendLicenseKeyEmail, sendStaffInvitationEmail };

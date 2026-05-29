@@ -146,6 +146,12 @@ app.use('/api/license-request', require('./routes/licenseRequestRoutes'));
 // Support Ticket Routes
 app.use('/api/support', require('./routes/supportTicket'));
 
+// Support Staff Routes
+app.use('/api/support-staff', require('./routes/supportStaff'));
+
+// Web Dashboard Unified Login
+app.use('/api/web-dashboard', require('./routes/webDashboard'));
+
 // Quiz Routes
 app.use('/api/quiz', require('./routes/quiz'));
 

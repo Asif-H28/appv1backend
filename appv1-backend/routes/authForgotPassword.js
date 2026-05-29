@@ -12,7 +12,7 @@ const { generateOTP, hashValue, generateResetToken } = require('../utils/otpUtil
 const { sendOTPEmail } = require('../utils/mailer');
 
 // ─── Helper: find any account by email across all collections ─────────────────
-// Returns { found: true, role: 'admin'|'teacher', model, emailField, passwordField }
+// Returns { found: true, role: 'admin'|'teacher'|'support_staff', model, emailField, passwordField }
 async function findAccountByEmail(email) {
   // 1. Check Organization (admin)
   const org = await Organization.findOne({ adminEmail: email });
@@ -22,19 +22,33 @@ async function findAccountByEmail(email) {
   const teacher = await Teacher.findOne({ email });
   if (teacher) return { found: true, role: 'teacher', doc: teacher, passwordField: 'password' };
 
+  // 3. Check Support Staff
+  const SupportStaff = require('../models/SupportStaff');
+  const supportStaff = await SupportStaff.findOne({ email });
+  if (supportStaff) return { found: true, role: 'support_staff', doc: supportStaff, passwordField: 'password' };
+
   return { found: false };
 }
 
 // ─── Helper: update password in the correct collection ───────────────────────
 async function updatePassword(email, hashedPwd) {
-  // Try admin first, then teacher
+  // Try admin first
   const orgResult = await Organization.findOneAndUpdate(
     { adminEmail: email },
     { adminPassword: hashedPwd }
   );
   if (orgResult) return;
 
-  await Teacher.findOneAndUpdate(
+  // Try teacher second
+  const teacherResult = await Teacher.findOneAndUpdate(
+    { email },
+    { password: hashedPwd }
+  );
+  if (teacherResult) return;
+
+  // Try support staff third
+  const SupportStaff = require('../models/SupportStaff');
+  await SupportStaff.findOneAndUpdate(
     { email },
     { password: hashedPwd }
   );
