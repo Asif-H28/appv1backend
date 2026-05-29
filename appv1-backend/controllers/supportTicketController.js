@@ -25,9 +25,12 @@ exports.createTicket = async (req, res) => {
     // If there are files attached, process and upload them to Azure
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
+        const isImageMime = file.mimetype.startsWith('image/');
+        const hasImageExt = file.originalname.match(/\.(jpg|jpeg|png|webp|gif|bmp)$/i);
+
         // Ensure it's an image
-        if (!file.mimetype.startsWith('image/')) {
-          return res.status(400).json({ error: 'Only image files are allowed as attachments' });
+        if (!isImageMime && !hasImageExt) {
+          return res.status(400).json({ error: `Only image files are allowed as attachments. Received: ${file.mimetype} for ${file.originalname}` });
         }
 
         // Optimize image using Sharp
