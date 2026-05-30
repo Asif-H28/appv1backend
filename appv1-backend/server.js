@@ -152,6 +152,9 @@ app.use('/api/support-staff', require('./routes/supportStaff'));
 // Admission Tracking Routes
 app.use('/api/admissions', require('./routes/admission'));
 
+// Library Management Routes
+app.use('/api/library', require('./routes/library'));
+
 // Web Dashboard Unified Login
 app.use('/api/web-dashboard', require('./routes/webDashboard'));
 
