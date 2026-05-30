@@ -149,6 +149,9 @@ app.use('/api/support', require('./routes/supportTicket'));
 // Support Staff Routes
 app.use('/api/support-staff', require('./routes/supportStaff'));
 
+// Admission Tracking Routes
+app.use('/api/admissions', require('./routes/admission'));
+
 // Web Dashboard Unified Login
 app.use('/api/web-dashboard', require('./routes/webDashboard'));
 
