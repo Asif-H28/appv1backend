@@ -13,7 +13,8 @@ const auth = async (req, res, next) => {
     req.user = decoded; // Contains orgId, role, etc.
 
     // Single-device login validation
-    const identifier = decoded.studentId || decoded.teacherId || decoded.orgId || decoded.adminId || decoded.userId;
+    // Prioritize specific user IDs over orgId, because orgId is used as a fallback for Org Admins
+    const identifier = decoded.studentId || decoded.teacherId || decoded.adminId || decoded.userId || decoded.orgId;
     if (identifier) {
       const session = await ActiveSession.findOne({ userId: identifier });
       
