@@ -16,29 +16,35 @@ exports.createEnquiry = async (req, res) => {
     const orgId = req.user?.orgId;
     if (!orgId) return res.status(400).json({ error: 'orgId is required' });
 
-    const { studentInfo, guardianInfo, academicInfo, source } = req.body;
+    // Accept either the newly requested format or the original format
+    const { studentInfo, guardianInfo, academicInfo, source, student: s, guardian: g, academic: a, metadata: m } = req.body;
+
+    const studentData = studentInfo || s;
+    const guardianData = guardianInfo || g;
+    const academicData = academicInfo || a;
+    const sourceData = source || m?.source;
 
     // Basic Validation
-    if (!studentInfo?.fullName || !studentInfo?.dateOfBirth || !studentInfo?.gender) {
+    if (!studentData?.fullName || !studentData?.dateOfBirth || !studentData?.gender) {
       return res.status(400).json({ error: 'Student full name, date of birth, and gender are required' });
     }
-    if (!guardianInfo?.name || !guardianInfo?.phone || !guardianInfo?.relationship) {
+    if (!guardianData?.name || (!guardianData?.phone && !guardianData?.phoneNumber) || !guardianData?.relationship) {
       return res.status(400).json({ error: 'Guardian name, phone number, and relationship are required' });
     }
-    if (!academicInfo?.classAppliedFor || !academicInfo?.academicYear) {
+    if (!academicData?.classAppliedFor || !academicData?.academicYear) {
       return res.status(400).json({ error: 'Class applied for and academic year are required' });
     }
 
-    const student = studentInfo;
+    const student = studentData;
     const guardian = {
-      name: guardianInfo.name,
-      phoneNumber: guardianInfo.phone,
-      email: guardianInfo.email || '',
-      relationship: guardianInfo.relationship
+      name: guardianData.name,
+      phoneNumber: guardianData.phone || guardianData.phoneNumber,
+      email: guardianData.email || '',
+      relationship: guardianData.relationship
     };
-    const academic = academicInfo;
+    const academic = academicData;
     const metadata = {
-      source: source || 'walk-in',
+      source: sourceData || 'walk-in',
       dateOfEnquiry: new Date()
     };
 
