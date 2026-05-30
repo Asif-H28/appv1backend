@@ -16,18 +16,31 @@ exports.createEnquiry = async (req, res) => {
     const orgId = req.user?.orgId;
     if (!orgId) return res.status(400).json({ error: 'orgId is required' });
 
-    const { student, guardian, academic, metadata } = req.body;
+    const { studentInfo, guardianInfo, academicInfo, source } = req.body;
 
     // Basic Validation
-    if (!student?.fullName || !student?.dateOfBirth || !student?.gender) {
+    if (!studentInfo?.fullName || !studentInfo?.dateOfBirth || !studentInfo?.gender) {
       return res.status(400).json({ error: 'Student full name, date of birth, and gender are required' });
     }
-    if (!guardian?.name || !guardian?.phoneNumber || !guardian?.relationship) {
+    if (!guardianInfo?.name || !guardianInfo?.phone || !guardianInfo?.relationship) {
       return res.status(400).json({ error: 'Guardian name, phone number, and relationship are required' });
     }
-    if (!academic?.classAppliedFor || !academic?.academicYear) {
+    if (!academicInfo?.classAppliedFor || !academicInfo?.academicYear) {
       return res.status(400).json({ error: 'Class applied for and academic year are required' });
     }
+
+    const student = studentInfo;
+    const guardian = {
+      name: guardianInfo.name,
+      phoneNumber: guardianInfo.phone,
+      email: guardianInfo.email || '',
+      relationship: guardianInfo.relationship
+    };
+    const academic = academicInfo;
+    const metadata = {
+      source: source || 'walk-in',
+      dateOfEnquiry: new Date()
+    };
 
     let enquiryId = generateEnquiryId();
     while (await AdmissionEnquiry.findOne({ enquiryId })) {
