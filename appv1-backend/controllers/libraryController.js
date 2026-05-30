@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const LibraryIssue = require('../models/LibraryIssue');
 
 const generateIssueId = () => `LIB_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -102,7 +103,12 @@ exports.markAsReturned = async (req, res) => {
     const { id } = req.params;
     const orgId = req.user?.orgId;
 
-    let query = { orgId, issueId: id };
+    let query = { orgId };
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      query.$or = [{ _id: id }, { issueId: id }];
+    } else {
+      query.issueId = id;
+    }
 
     const issueRecord = await LibraryIssue.findOne(query);
     if (!issueRecord) {
@@ -129,7 +135,14 @@ exports.deleteIssueRecord = async (req, res) => {
     const { id } = req.params;
     const orgId = req.user?.orgId;
 
-    const result = await LibraryIssue.deleteOne({ orgId, issueId: id });
+    let query = { orgId };
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      query.$or = [{ _id: id }, { issueId: id }];
+    } else {
+      query.issueId = id;
+    }
+
+    const result = await LibraryIssue.deleteOne(query);
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: 'Issue record not found' });
     }
