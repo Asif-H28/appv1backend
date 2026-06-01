@@ -9,6 +9,7 @@ const Student = require('../models/Student');
 const ClassJoinRequest = require('../models/ClassJoinRequest');
 const LicenseRequest = require('../models/LicenseRequest');
 const ActiveSession = require('../models/ActiveSession');
+const Achievement = require('../models/Achievement');
 
 // CREATE ORGANIZATION
 exports.createOrganization = async (req, res) => {
@@ -403,6 +404,40 @@ exports.updateOrganizationStatus = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// SUPER ADMIN: GET ORG STATS
+exports.getOrgStatsForSuperAdmin = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+
+    // Verify if org exists
+    const organization = await Organization.findOne({ orgId });
+    if (!organization) {
+      return res.status(404).json({ success: false, message: 'Organization not found' });
+    }
+
+    const [totalTeachers, totalStudents, totalClassrooms, totalAchievements] = await Promise.all([
+      Teacher.countDocuments({ orgId }),
+      Student.countDocuments({ orgId }),
+      Classroom.countDocuments({ orgId }),
+      Achievement.countDocuments({ orgId })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        orgId,
+        totalTeachers,
+        totalStudents,
+        totalClassrooms,
+        totalAchievements
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 
 // ROLLUP ACADEMIC YEAR
 exports.rollupAcademicYear = async (req, res) => {
