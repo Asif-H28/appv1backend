@@ -108,6 +108,7 @@ app.use('/api/org', require('./routes/org'));
 
 // Teacher routes
 app.use('/api/teacher', require('./routes/teacher'));
+app.use('/api/teacher-additional-record', require('./routes/teacherAdditionalRecord'));
 
 // Classroom routes
 app.use('/api/classroom', require('./routes/classroom'));
