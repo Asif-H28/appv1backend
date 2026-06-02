@@ -29,13 +29,21 @@ exports.upsertRecord = async (req, res) => {
 // Get the teacher additional record
 exports.getRecord = async (req, res) => {
   try {
-    const { orgId, teacherId } = req.params;
+    const { teacherId } = req.params;
+    // orgId can be taken from req.user (from auth token) or req.body, but for GET we rely on auth token or query.
+    // If the token has orgId, we use it. Otherwise, we might just query by teacherId.
+    const orgId = req.user?.orgId;
     
-    if (!teacherId || !orgId) {
-      return res.status(400).json({ error: 'teacherId and orgId are required in params' });
+    if (!teacherId) {
+      return res.status(400).json({ error: 'teacherId is required in params' });
     }
 
-    const record = await TeacherAdditionalRecord.findOne({ teacherId, orgId });
+    const query = { teacherId };
+    if (orgId) {
+      query.orgId = orgId;
+    }
+
+    const record = await TeacherAdditionalRecord.findOne(query);
     if (!record) {
       return res.status(404).json({ message: 'No additional record found' });
     }
@@ -46,3 +54,4 @@ exports.getRecord = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+

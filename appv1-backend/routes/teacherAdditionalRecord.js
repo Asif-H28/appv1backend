@@ -12,7 +12,7 @@ router.use(checkOrgStatus);
 // POST: Create or update teacher additional record
 router.post('/', upsertRecord);
 
-// GET: Retrieve teacher additional record for a specific teacher in an organization
-router.get('/:orgId/:teacherId', getRecord);
+// GET: Retrieve teacher additional record for a specific teacher
+router.get('/:teacherId', getRecord);
 
 module.exports = router;
