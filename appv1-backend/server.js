@@ -113,6 +113,9 @@ app.use('/api/teacher-additional-record', require('./routes/teacherAdditionalRec
 // Classroom routes
 app.use('/api/classroom', require('./routes/classroom'));
 
+// Lesson Video routes
+app.use('/api/lesson-video', require('./routes/lessonVideo'));
+
 // Student routes
 app.use('/api/student', require('./routes/student'));
 
