@@ -3,18 +3,23 @@ const LessonVideo = require('../models/LessonVideo');
 // Store YouTube Video Link
 exports.addLessonVideo = async (req, res) => {
   try {
-    const { 
+    let { 
       url, title, videoType, classId, className, 
       subjectId, lessonId, teacherId, teacherName, orgId 
     } = req.body;
+
+    // AUTOMATIC FALLBACK: Use token info if frontend sends empty strings
+    teacherId = teacherId || (req.user && (req.user.teacherId || req.user.adminId || req.user.studentId || req.user.userId)) || "";
+    orgId = orgId || (req.user && req.user.orgId) || "";
+    teacherName = teacherName || "Admin/Support"; // Fallback for teacherName
 
     // Check if the user role is student, they shouldn't be able to add a video
     if (req.user && req.user.role === 'student') {
       return res.status(403).json({ error: 'Students are not allowed to add videos' });
     }
 
-    if (!url || !classId || !teacherId || !teacherName || !orgId) {
-      return res.status(400).json({ error: 'url, classId, teacherId, teacherName, and orgId are required' });
+    if (!url || !classId || !teacherId || !orgId) {
+      return res.status(400).json({ error: 'url, classId, teacherId, and orgId are required' });
     }
 
     const type = videoType || 'lesson';
