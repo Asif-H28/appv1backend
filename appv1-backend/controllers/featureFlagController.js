@@ -4,8 +4,8 @@ const OrgFeatureFlag = require('../models/OrgFeatureFlag');
 // Create a unique feature enum (Super Admin typically)
 exports.createFeatureDefinition = async (req, res) => {
   try {
-    // Basic super admin restriction check (optional, assuming 'superadmin' role)
-    if (req.user && req.user.role && req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    // Basic super admin restriction check
+    if (req.user && req.user.role && req.user.role !== 'superadmin' && req.user.role !== 'super_admin' && req.user.role !== 'admin') {
        return res.status(403).json({ error: 'Unauthorized to define new features' });
     }
 
@@ -46,7 +46,7 @@ exports.getFeatureDefinitions = async (req, res) => {
 // Toggle a feature for a specific org (Super Admin)
 exports.toggleOrgFeatureFlag = async (req, res) => {
   try {
-    if (req.user && req.user.role && req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+    if (req.user && req.user.role && req.user.role !== 'superadmin' && req.user.role !== 'super_admin' && req.user.role !== 'admin') {
        return res.status(403).json({ error: 'Unauthorized to toggle features' });
     }
 
