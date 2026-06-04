@@ -405,8 +405,8 @@ exports.updateOrganizationStatus = async (req, res) => {
   }
 };
 
-// SUPER ADMIN: GET ORG STATS
-exports.getOrgStatsForSuperAdmin = async (req, res) => {
+// ORG STATS (For Super Admin and Org Admin)
+exports.getOrgStats = async (req, res) => {
   try {
     const { orgId } = req.params;
 

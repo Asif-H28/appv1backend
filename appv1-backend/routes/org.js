@@ -12,6 +12,7 @@ const {
   getSchoolDetails,      // ← NEW
   updateSchoolDetails,   // ← NEW
   rollupAcademicYear,    // ← NEW
+  getOrgStats,
 } = require('../controllers/orgController');
 
 const auth = require('../middleware/auth');
@@ -32,5 +33,6 @@ router.put ('/:orgId/fcm-token',        updateAdminFcmToken);
 router.get ('/:orgId/school-details',   getSchoolDetails);    // ← NEW
 router.put ('/:orgId/school-details',   updateSchoolDetails); // ← NEW
 router.post('/:orgId/rollup-year',      rollupAcademicYear);  // ← NEW
+router.get ('/:orgId/stats',            getOrgStats);         // ← NEW
 
 module.exports = router;
