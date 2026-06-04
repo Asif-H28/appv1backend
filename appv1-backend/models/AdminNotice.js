@@ -6,6 +6,8 @@ const adminNoticeSchema = new mongoose.Schema({
   title:       { type: String, required: true, trim: true },
   description: { type: String, required: true, trim: true },
   createdBy:   { type: String, required: true },   // admin orgId or name
+  creatorRole: { type: String, enum: ['admin', 'support_staff'], default: 'admin' },
+  creatorName: { type: String, default: 'Admin' },
 
   // ── AUDIENCE ──────────────────────────────────────
   audience: {

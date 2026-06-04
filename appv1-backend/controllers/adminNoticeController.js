@@ -50,6 +50,8 @@ exports.createAdminNotice = async (req, res) => {
       title,
       description,
       createdBy,
+      creatorName,
+      creatorRole,
       audience,        // 'teachers_only' | 'teachers_and_students'
       targetScope,     // 'all_classes' | 'selected_classes' (only for teachers_and_students)
       targetClassIds,  // array of classIds (only when targetScope = 'selected_classes')
@@ -155,6 +157,8 @@ exports.createAdminNotice = async (req, res) => {
       title,
       description,
       createdBy,
+      creatorRole:    creatorRole || 'admin',
+      creatorName:    creatorName || 'Admin',
       audience,
       targetScope:    audience === 'teachers_and_students' ? targetScope : null,
       targetClassIds: parsedClassIds,
@@ -232,7 +236,7 @@ exports.createAdminNotice = async (req, res) => {
         body:       description,
         type:       'notice',
         sentBy:     createdBy,
-        sentByName: 'Admin',
+        sentByName: creatorName || 'Admin',
         targetRole: audience === 'teachers_only' ? 'teacher' : 'all',
         orgId,
         data:       {
