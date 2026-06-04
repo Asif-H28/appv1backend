@@ -116,6 +116,9 @@ app.use('/api/classroom', require('./routes/classroom'));
 // Lesson Video routes
 app.use('/api/lesson-video', require('./routes/lessonVideo'));
 
+// Tuition Session routes
+app.use('/api/sessions', require('./routes/session'));
+
 // Student routes
 app.use('/api/student', require('./routes/student'));
 
