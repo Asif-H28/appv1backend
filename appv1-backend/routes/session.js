@@ -8,7 +8,8 @@ const {
   updateActivity,
   checkOut,
   getSessions,
-  getSessionById
+  getSessionById,
+  getSessionActivity
 } = require('../controllers/sessionController');
 
 const auth = require('../middleware/auth');
@@ -43,5 +44,8 @@ router.get('/org/:orgId', getSessions);
 
 // Get specific session detail
 router.get('/:id', getSessionById);
+
+// Get specific session activity
+router.get('/:id/activity', getSessionActivity);
 
 module.exports = router;

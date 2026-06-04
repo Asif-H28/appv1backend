@@ -23,18 +23,15 @@ exports.generateQR = async (req, res) => {
     const dateStart = new Date(now);
     dateStart.setHours(0, 0, 0, 0);
 
-    // Check if session already exists for today
+    // Check if a pending session already exists for today
     let session = await TuitionSession.findOne({
       assignmentId,
       studentId,
-      date: dateStart
+      date: dateStart,
+      status: 'pending'
     });
 
-    if (session) {
-      if (session.status !== 'pending') {
-        return res.status(400).json({ error: `Session for today is already ${session.status}` });
-      }
-    } else {
+    if (!session) {
       // Create new pending session
       session = new TuitionSession({
         sessionId: generateSessionId(),
@@ -147,14 +144,11 @@ exports.forceCheckIn = async (req, res) => {
     let session = await TuitionSession.findOne({
       assignmentId,
       studentId,
-      date: dateStart
+      date: dateStart,
+      status: 'pending'
     });
 
     if (session) {
-      if (session.status !== 'pending') {
-        return res.status(400).json({ error: `Session is already ${session.status}. Cannot force check-in.` });
-      }
-      // Update existing pending session
       session.status = 'ongoing';
       session.forcedCheckIn = true;
       session.forcedCheckInReason = reason;
@@ -333,6 +327,17 @@ exports.getSessionById = async (req, res) => {
     const session = await TuitionSession.findById(id);
     if (!session) return res.status(404).json({ error: 'Session not found' });
     res.json({ success: true, session });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getSessionActivity = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const session = await TuitionSession.findById(id);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+    res.json({ success: true, activity: session.activity });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
