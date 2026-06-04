@@ -10,7 +10,7 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({ success: false, message: 'Email and password are required' });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
@@ -22,11 +22,11 @@ exports.login = async (req, res) => {
       // It's an org admin
       const isMatch = await bcrypt.compare(password, orgAdmin.adminPassword);
       if (!isMatch) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
 
       if (orgAdmin.isActive === false) {
-        return res.status(403).json({ error: 'Organization has been deactivated. Please contact support.' });
+        return res.status(403).json({ success: false, message: 'Organization has been deactivated. Please contact support.' });
       }
 
       const sessionToken = crypto.randomBytes(16).toString('hex');
@@ -61,17 +61,17 @@ exports.login = async (req, res) => {
       // It's a support staff
       const isMatch = await bcrypt.compare(password, supportStaff.password);
       if (!isMatch) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
 
       if (supportStaff.isActive === false) {
-        return res.status(403).json({ error: 'Your account has been deactivated.' });
+        return res.status(403).json({ success: false, message: 'Your account has been deactivated.' });
       }
 
       // Check if the organization itself is active
       const org = await Organization.findOne({ orgId: supportStaff.orgId });
       if (!org || org.isActive === false) {
-        return res.status(403).json({ error: 'Your organization has been deactivated.' });
+        return res.status(403).json({ success: false, message: 'Your organization has been deactivated.' });
       }
 
       const sessionToken = crypto.randomBytes(16).toString('hex');
@@ -107,10 +107,10 @@ exports.login = async (req, res) => {
     }
 
     // If neither was found
-    return res.status(401).json({ error: 'Invalid credentials' });
+    return res.status(401).json({ success: false, message: 'Invalid credentials' });
 
   } catch (error) {
     console.error('Web Dashboard Login Error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
