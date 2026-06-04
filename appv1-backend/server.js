@@ -142,6 +142,7 @@ app.use('/api/achievement', require('./routes/achievement'));
 app.use('/api/admin-notices', require('./routes/adminNoticeRoutes'));
 app.use('/api/comprehensive-assessment', require('./routes/comprehensiveAssessmentRoutes'));
 app.use('/api/comprehensive-result', require('./routes/comprehensiveResultRoutes'));
+app.use('/api/feature-flags', require('./routes/featureFlagRoutes'));
 
 // Super Admin Authentication Routes (isolated to 'webapp' DB)
 app.use('/api/super-admin/app', require('./routes/superAdminApp'));
