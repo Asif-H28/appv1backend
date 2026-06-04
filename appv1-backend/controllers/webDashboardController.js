@@ -22,7 +22,7 @@ exports.login = async (req, res) => {
       // It's an org admin
       const isMatch = await bcrypt.compare(password, orgAdmin.adminPassword);
       if (!isMatch) {
-        return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        return res.status(400).json({ success: false, message: 'Invalid credentials' });
       }
 
       if (orgAdmin.isActive === false) {
@@ -61,7 +61,7 @@ exports.login = async (req, res) => {
       // It's a support staff
       const isMatch = await bcrypt.compare(password, supportStaff.password);
       if (!isMatch) {
-        return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        return res.status(400).json({ success: false, message: 'Invalid credentials' });
       }
 
       if (supportStaff.isActive === false) {
@@ -107,7 +107,7 @@ exports.login = async (req, res) => {
     }
 
     // If neither was found
-    return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    return res.status(400).json({ success: false, message: 'Invalid credentials' });
 
   } catch (error) {
     console.error('Web Dashboard Login Error:', error);
