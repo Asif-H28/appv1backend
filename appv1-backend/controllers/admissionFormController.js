@@ -253,15 +253,21 @@ exports.getStudentAdmissionStatus = async (req, res) => {
             });
         }
 
-        const query = { $or: [] };
+        let admissionData = null;
+
+        // First check the email
         if (email) {
-            query.$or.push({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
-        }
-        if (phoneNumber) {
-            query.$or.push({ phoneNumber: phoneNumber });
+            admissionData = await AdmissionForm.findOne({
+                email: { $regex: new RegExp(`^${email}$`, 'i') }
+            });
         }
 
-        const admissionData = await AdmissionForm.findOne(query);
+        // If not found by email, check the phone number
+        if (!admissionData && phoneNumber) {
+            admissionData = await AdmissionForm.findOne({
+                phoneNumber: phoneNumber
+            });
+        }
 
         if (!admissionData) {
             return res.status(404).json({
