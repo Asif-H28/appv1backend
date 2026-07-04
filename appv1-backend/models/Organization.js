@@ -28,6 +28,21 @@ const organizationSchema = new mongoose.Schema(
     // ── Academic Year Details ───────────
     currentAcademicYear: { type: String, default: null },
     academicYearStartDate: { type: Date, default: null },
+
+    // ── Payment Settings ───────────
+    upiIds: [
+      {
+        title: { type: String, required: true },
+        bankingName: { type: String, required: true, default: 'Unknown' },
+        upiId: { type: String, required: true } // Encrypted string
+      }
+    ],
+    customFees: [
+      {
+        title: { type: String, required: true },
+        amount: { type: Number, required: true }
+      }
+    ],
   },
   { timestamps: true }
 );
