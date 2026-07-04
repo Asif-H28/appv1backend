@@ -106,6 +106,7 @@ app.use('/api/auth', require('./routes/authForgotPassword'));
 app.use('/api/org/school', require('./routes/school.routes'));
 app.use('/api/org/settings', require('./routes/orgSettingsRoutes'));
 app.use('/api/org', require('./routes/org'));
+app.use('/api/admission-forms', require('./routes/admissionFormRoutes'));
 
 // Teacher routes
 app.use('/api/teacher', require('./routes/teacher'));

@@ -43,6 +43,14 @@ const organizationSchema = new mongoose.Schema(
         amount: { type: Number, required: true }
       }
     ],
+
+    // ── Admission Form Template ────
+    admissionFormTemplate: [
+      {
+        title: { type: String, required: true },
+        placeholder: { type: String, required: true }
+      }
+    ],
   },
   { timestamps: true }
 );
