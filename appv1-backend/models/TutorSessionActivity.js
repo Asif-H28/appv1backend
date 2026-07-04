@@ -14,6 +14,8 @@ const tutorSessionActivitySchema = new mongoose.Schema({
     lng: { type: Number },
     address: { type: String }
   },
+  sessionStartedTime: { type: Date },
+  sessionEndedTime: { type: Date },
   status: { type: String, enum: ['Session ongoing/started', 'Completed'], default: 'Session ongoing/started' },
 
   // Step 2: Update Session Activity Data

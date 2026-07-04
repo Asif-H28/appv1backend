@@ -9,7 +9,7 @@ exports.startSession = async (req, res) => {
   try {
     const { orgId } = req; // from checkOrgStatus middleware
     const teacherId = req.user.id; // from auth middleware
-    const { studentPhotos, duration, studentIds, lat, lng, date } = req.body;
+    const { studentPhotos, duration, studentIds, lat, lng, date, sessionStartedTime } = req.body;
 
     let address = 'Location not found';
     if (lat && lng) {
@@ -34,6 +34,7 @@ exports.startSession = async (req, res) => {
       duration,
       studentIds: studentIds || [],
       location: { lat, lng, address },
+      sessionStartedTime: sessionStartedTime || new Date(),
       status: 'Session ongoing/started'
     });
 
@@ -64,7 +65,8 @@ exports.updateSessionActivity = async (req, res) => {
       isHomeworkProvided,
       homeworkFiles,
       isTestProvided,
-      testFiles
+      testFiles,
+      sessionEndedTime
     } = req.body;
 
     const session = await TutorSessionActivity.findById(id);
@@ -77,6 +79,9 @@ exports.updateSessionActivity = async (req, res) => {
     session.homeworkFiles = homeworkFiles || [];
     session.isTestProvided = isTestProvided || false;
     session.testFiles = testFiles || [];
+    if (sessionEndedTime) {
+      session.sessionEndedTime = sessionEndedTime;
+    }
     session.status = 'Completed';
 
     await session.save();
