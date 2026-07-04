@@ -22,7 +22,7 @@ exports.getPresentTutors = async (req, res) => {
     });
 
     const teacherIds = attendances.map(a => a.teacherId);
-    const teachers = await Teacher.find({ _id: { $in: teacherIds }, orgId }, 'name email teacherId');
+    const teachers = await Teacher.find({ teacherId: { $in: teacherIds }, orgId }, 'name email teacherId');
 
     res.status(200).json({ success: true, data: teachers });
   } catch (error) {
@@ -55,7 +55,7 @@ exports.getAttendanceReport = async (req, res) => {
     const teachers = await Teacher.find({ orgId }, 'name email teacherId');
 
     const report = teachers.map(teacher => {
-      const teacherAttendances = attendances.filter(a => a.teacherId === teacher._id.toString());
+      const teacherAttendances = attendances.filter(a => a.teacherId === teacher.teacherId);
       
       const dayWise = {};
       let totalPresent = 0;
@@ -82,7 +82,7 @@ exports.getAttendanceReport = async (req, res) => {
       totalAbsent = totalDays - totalPresent;
 
       return {
-        teacherId: teacher._id,
+        teacherId: teacher.teacherId,
         name: teacher.name,
         email: teacher.email,
         dayWise,
@@ -117,7 +117,7 @@ exports.exportAttendanceReport = async (req, res) => {
       orgId,
       date: { $gte: start, $lte: end }
     });
-    const teachers = await Teacher.find({ orgId }, 'name');
+    const teachers = await Teacher.find({ orgId }, 'name teacherId');
 
     const workbook = new exceljs.Workbook();
     const worksheet = workbook.addWorksheet('Attendance Report');
@@ -145,7 +145,7 @@ exports.exportAttendanceReport = async (req, res) => {
 
     // Add rows
     teachers.forEach(teacher => {
-      const teacherAttendances = attendances.filter(a => a.teacherId === teacher._id.toString());
+      const teacherAttendances = attendances.filter(a => a.teacherId === teacher.teacherId);
       
       const row = {
         name: teacher.name,
