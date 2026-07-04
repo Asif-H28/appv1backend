@@ -246,18 +246,22 @@ exports.getStudentAdmissionStatus = async (req, res) => {
     try {
         const { email, phoneNumber } = req.body;
 
-        if (!email || !phoneNumber) {
+        if (!email && !phoneNumber) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide both email and phone number'
+                message: 'Please provide either an email or a phone number'
             });
         }
 
-        // Use case-insensitive exact match for email
-        const admissionData = await AdmissionForm.findOne({
-            email: { $regex: new RegExp(`^${email}$`, 'i') },
-            phoneNumber: phoneNumber
-        });
+        const query = { $or: [] };
+        if (email) {
+            query.$or.push({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+        }
+        if (phoneNumber) {
+            query.$or.push({ phoneNumber: phoneNumber });
+        }
+
+        const admissionData = await AdmissionForm.findOne(query);
 
         if (!admissionData) {
             return res.status(404).json({
