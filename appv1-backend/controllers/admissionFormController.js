@@ -236,3 +236,48 @@ exports.deleteSubmission = async (req, res) => {
         res.status(500).json({ success: false, error: 'Internal server error' });
     }
 };
+
+/**
+ * Get Admission Form Status for Student Portal
+ * Method: POST
+ * Route: /api/admission-forms/status
+ */
+exports.getStudentAdmissionStatus = async (req, res) => {
+    try {
+        const { email, phoneNumber } = req.body;
+
+        if (!email || !phoneNumber) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide both email and phone number'
+            });
+        }
+
+        // Use case-insensitive exact match for email
+        const admissionData = await AdmissionForm.findOne({
+            email: { $regex: new RegExp(`^${email}$`, 'i') },
+            phoneNumber: phoneNumber
+        });
+
+        if (!admissionData) {
+            return res.status(404).json({
+                success: false,
+                message: 'No admission record found for the provided details'
+            });
+        }
+
+        // Decrypt UPI ID if it exists
+        const responseData = admissionData.toObject();
+        if (responseData.upiId) {
+            responseData.upiId = decrypt(responseData.upiId);
+        }
+
+        res.status(200).json({
+            success: true,
+            data: responseData
+        });
+    } catch (error) {
+        console.error('Error fetching student admission status:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+};

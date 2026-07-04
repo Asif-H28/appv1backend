@@ -10,6 +10,7 @@ router.get('/template', auth, admissionFormController.getTemplate);
 router.put('/template', auth, admissionFormController.updateTemplate);
 
 // Submission CRUD Routes
+router.post('/status', admissionFormController.getStudentAdmissionStatus);
 router.post('/', auth, admissionFormController.createSubmission);
 router.get('/', auth, admissionFormController.getSubmissions);
 router.put('/:id', auth, admissionFormController.updateSubmission);
