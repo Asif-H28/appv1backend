@@ -7,8 +7,8 @@ const geocoder = NodeGeocoder({ provider: 'openstreetmap' });
 // POST /api/tutor-session/start
 exports.startSession = async (req, res) => {
   try {
-    const { orgId } = req; // from checkOrgStatus middleware
-    const teacherId = req.user.id; // from auth middleware
+    const orgId = req.user.orgId; // from auth middleware
+    const teacherId = req.user.teacherId; // from auth middleware
     const { studentPhotos, duration, studentIds, lat, lng, date, sessionStartedTime } = req.body;
 
     let address = 'Location not found';
@@ -95,8 +95,8 @@ exports.updateSessionActivity = async (req, res) => {
 // GET /api/tutor-session
 exports.getTutorSessions = async (req, res) => {
   try {
-    const { orgId } = req;
-    const teacherId = req.user.id;
+    const orgId = req.user.orgId;
+    const teacherId = req.user.teacherId;
     const { date } = req.query;
 
     const query = { orgId, teacherId };

@@ -5,7 +5,7 @@ const exceljs = require('exceljs');
 // GET /api/tutor-attendance/present?date=YYYY-MM-DD
 exports.getPresentTutors = async (req, res) => {
   try {
-    const { orgId } = req;
+    const orgId = req.user.orgId;
     const { date } = req.query;
 
     if (!date) {
@@ -33,7 +33,7 @@ exports.getPresentTutors = async (req, res) => {
 // GET /api/tutor-attendance/report?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
 exports.getAttendanceReport = async (req, res) => {
   try {
-    const { orgId } = req;
+    const orgId = req.user.orgId;
     const { startDate, endDate } = req.query;
 
     if (!startDate || !endDate) {
@@ -101,7 +101,7 @@ exports.getAttendanceReport = async (req, res) => {
 // GET /api/tutor-attendance/export?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
 exports.exportAttendanceReport = async (req, res) => {
   try {
-    const { orgId } = req;
+    const orgId = req.user.orgId;
     const { startDate, endDate } = req.query;
 
     if (!startDate || !endDate) {
