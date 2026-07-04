@@ -112,3 +112,24 @@ exports.getTutorSessions = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// GET /api/tutor-sessions/admin/teacher/:teacherId
+exports.getAdminTutorSessions = async (req, res) => {
+  try {
+    const orgId = req.user.orgId;
+    const { teacherId } = req.params;
+    const { date } = req.query;
+
+    const query = { orgId, teacherId };
+    if (date) {
+      const queryDate = new Date(date);
+      queryDate.setHours(0, 0, 0, 0);
+      query.date = queryDate;
+    }
+
+    const sessions = await TutorSessionActivity.find(query).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: sessions });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
