@@ -18,6 +18,8 @@ const admissionFormSchema = new mongoose.Schema(
     schoolName: { type: String, required: true },
     studentClass: { type: String, required: true },
     dateOfBirth: { type: Date, required: true },
+    tutorId: { type: String, required: true },
+    tutorName: { type: String, required: true },
 
     // ── Dynamic Custom Fields ───────────
     customFields: [
