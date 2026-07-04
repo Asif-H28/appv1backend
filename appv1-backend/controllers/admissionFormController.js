@@ -1,5 +1,6 @@
 const AdmissionForm = require('../models/AdmissionForm');
 const Organization = require('../models/Organization');
+const Teacher = require('../models/Teacher');
 const { encrypt, decrypt } = require('../utils/cryptoUtil');
 
 /**
@@ -25,12 +26,16 @@ exports.getTemplate = async (req, res) => {
             upiId: decrypt(item.upiId)
         }));
 
+        // Fetch teachers
+        const teachers = await Teacher.find({ orgId }).select('teacherId name');
+
         res.status(200).json({
             success: true,
             data: {
                 admissionFormTemplate: org.admissionFormTemplate || [],
                 upiIds: decryptedUpiIds,
-                customFees: org.customFees || []
+                customFees: org.customFees || [],
+                teachers: teachers
             }
         });
     } catch (error) {
