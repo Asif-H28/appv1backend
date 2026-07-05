@@ -53,6 +53,13 @@ exports.getApplications = async (req, res) => {
             ];
         }
 
+        if (req.query.status === 'pending') {
+            query.feeAmount = null;
+            query.upiId = null;
+            query.tutorId = null;
+            query.tutorName = null;
+        }
+
         const applications = await TuitionApplication.find(query)
             .sort({ createdAt: -1 })
             .skip(skip)
