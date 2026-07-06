@@ -255,39 +255,46 @@ exports.getStudentAdmissionStatus = async (req, res) => {
 
         let admissionData = null;
 
-        // First check the email
+        // 1. First check the email
         if (email) {
             admissionData = await AdmissionForm.findOne({
                 email: { $regex: new RegExp(`^${email}$`, 'i') }
             });
+
+            // If found by email, format and return immediately
+            if (admissionData) {
+                const responseData = admissionData.toObject();
+                if (responseData.upiId) {
+                    responseData.upiId = decrypt(responseData.upiId);
+                }
+                return res.status(200).json({ success: true, data: responseData });
+            }
         }
 
-        // If not found by email, check the phone number
-        if (!admissionData && phoneNumber) {
+        // 2. If not found by email (or email wasn't provided), check the phone number
+        if (phoneNumber) {
             admissionData = await AdmissionForm.findOne({
                 phoneNumber: phoneNumber
             });
+
+            // If found by phone number, format and return immediately
+            if (admissionData) {
+                const responseData = admissionData.toObject();
+                if (responseData.upiId) {
+                    responseData.upiId = decrypt(responseData.upiId);
+                }
+                return res.status(200).json({ success: true, data: responseData });
+            }
         }
 
-        if (!admissionData) {
-            return res.status(404).json({
-                success: false,
-                message: 'No admission record found for the provided details'
-            });
-        }
-
-        // Decrypt UPI ID if it exists
-        const responseData = admissionData.toObject();
-        if (responseData.upiId) {
-            responseData.upiId = decrypt(responseData.upiId);
-        }
-
-        res.status(200).json({
-            success: true,
-            data: responseData
+        // 3. If neither query returned data
+        return res.status(404).json({
+            success: false,
+            message: 'No admission record found for the provided details'
         });
+
     } catch (error) {
         console.error('Error fetching student admission status:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 };
