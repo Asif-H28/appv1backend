@@ -153,6 +153,8 @@ exports.updateTeacherProfile = async (req, res) => {
         address: teacher.address,
         phoneNumber: teacher.phoneNumber,
         verified: teacher.verified,
+        salaryType: teacher.salaryType || 'monthwise',
+        salaryAmount: teacher.salaryAmount || 0,
         isTransportCoordinator: teacher.isTransportCoordinator || false
       }
     });
@@ -183,6 +185,8 @@ exports.getTeacherProfile = async (req, res) => {
           gender: teacher.gender,   
         phoneNumber: teacher.phoneNumber,
         verified: teacher.verified,
+        salaryType: teacher.salaryType || 'monthwise',
+        salaryAmount: teacher.salaryAmount || 0,
         isTransportCoordinator: teacher.isTransportCoordinator || false,
         createdAt: teacher.createdAt
       }
@@ -210,6 +214,8 @@ exports.getOrgTeachers = async (req, res) => {
         address: t.address,
         phoneNumber: t.phoneNumber,
         verified: t.verified,
+        salaryType: t.salaryType || 'monthwise',
+        salaryAmount: t.salaryAmount || 0,
         isTransportCoordinator: t.isTransportCoordinator || false,
         createdAt: t.createdAt
       }))
@@ -453,3 +459,47 @@ exports.removeTeacherFromOrg = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// ASSIGN SALARY (BULK OR INDIVIDUAL)
+exports.updateTeachersSalary = async (req, res) => {
+  try {
+    const { teacherIds, salaryType, salaryAmount } = req.body;
+    const orgId = req.user.orgId;
+
+    if (!Array.isArray(teacherIds) || teacherIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'teacherIds array is required and must not be empty' });
+    }
+    if (!salaryType || salaryAmount === undefined) {
+      return res.status(400).json({ success: false, error: 'salaryType and salaryAmount are required' });
+    }
+    if (!['daywise', 'monthwise'].includes(salaryType)) {
+      return res.status(400).json({ success: false, error: 'Invalid salaryType. Must be daywise or monthwise' });
+    }
+
+    await Teacher.updateMany(
+      { teacherId: { $in: teacherIds }, orgId },
+      { $set: { salaryType, salaryAmount } }
+    );
+
+    res.json({ success: true, message: 'Salary updated successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// GET BASIC TEACHER LIST (ONLY NAME & TEACHER ID)
+exports.getBasicTeacherList = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    const teachers = await Teacher.find({ orgId, verified: true }).select('name teacherId');
+
+    res.json({
+      success: true,
+      count: teachers.length,
+      teachers: teachers
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+

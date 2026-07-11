@@ -52,7 +52,7 @@ exports.getAttendanceReport = async (req, res) => {
     });
 
     // Get all teachers for the org
-    const teachers = await Teacher.find({ orgId }, 'name email teacherId');
+    const teachers = await Teacher.find({ orgId }, 'name email teacherId salaryType salaryAmount');
 
     const report = teachers.map(teacher => {
       const teacherAttendances = attendances.filter(a => a.teacherId === teacher.teacherId);
@@ -81,6 +81,16 @@ exports.getAttendanceReport = async (req, res) => {
       const totalDays = Object.keys(dayWise).length;
       totalAbsent = totalDays - totalPresent;
 
+      let totalSalary = 0;
+      const salaryType = teacher.salaryType || 'monthwise';
+      const salaryAmount = teacher.salaryAmount || 0;
+      
+      if (salaryType === 'daywise') {
+        totalSalary = totalPresent * salaryAmount;
+      } else if (salaryType === 'monthwise') {
+        totalSalary = salaryAmount;
+      }
+
       return {
         teacherId: teacher.teacherId,
         name: teacher.name,
@@ -88,7 +98,10 @@ exports.getAttendanceReport = async (req, res) => {
         dayWise,
         totalDays,
         totalPresent,
-        totalAbsent
+        totalAbsent,
+        salaryType,
+        salaryAmount,
+        totalSalary
       };
     });
 
@@ -117,7 +130,7 @@ exports.exportAttendanceReport = async (req, res) => {
       orgId,
       date: { $gte: start, $lte: end }
     });
-    const teachers = await Teacher.find({ orgId }, 'name teacherId');
+    const teachers = await Teacher.find({ orgId }, 'name teacherId salaryType salaryAmount');
 
     const workbook = new exceljs.Workbook();
     const worksheet = workbook.addWorksheet('Attendance Report');
@@ -140,7 +153,10 @@ exports.exportAttendanceReport = async (req, res) => {
       ...dateColumns,
       { header: 'Total Days', key: 'totalDays', width: 12 },
       { header: 'Present Count', key: 'totalPresent', width: 15 },
-      { header: 'Absent Count', key: 'totalAbsent', width: 15 }
+      { header: 'Absent Count', key: 'totalAbsent', width: 15 },
+      { header: 'Salary Type', key: 'salaryType', width: 15 },
+      { header: 'Salary Amount', key: 'salaryAmount', width: 15 },
+      { header: 'Total Salary', key: 'totalSalary', width: 15 }
     ];
 
     // Add rows
@@ -165,9 +181,22 @@ exports.exportAttendanceReport = async (req, res) => {
       const totalDays = dateColumns.length;
       const totalAbsent = totalDays - totalPresent;
 
+      let totalSalary = 0;
+      const salaryType = teacher.salaryType || 'monthwise';
+      const salaryAmount = teacher.salaryAmount || 0;
+      
+      if (salaryType === 'daywise') {
+        totalSalary = totalPresent * salaryAmount;
+      } else if (salaryType === 'monthwise') {
+        totalSalary = salaryAmount;
+      }
+
       row.totalDays = totalDays;
       row.totalPresent = totalPresent;
       row.totalAbsent = totalAbsent;
+      row.salaryType = salaryType;
+      row.salaryAmount = salaryAmount;
+      row.totalSalary = totalSalary;
 
       worksheet.addRow(row);
     });

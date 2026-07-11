@@ -12,7 +12,9 @@ const teacherSchema = new mongoose.Schema({
   phoneNumber: { type: String,  default: '' },
   verified:    { type: Boolean, default: false },
   fcmToken:    { type: String,  default: null },
-  isTransportCoordinator: { type: Boolean, default: false }
+  isTransportCoordinator: { type: Boolean, default: false },
+  salaryType:  { type: String, enum: ['daywise', 'monthwise'], default: 'monthwise' },
+  salaryAmount:{ type: Number, default: 0 }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Teacher', teacherSchema);
