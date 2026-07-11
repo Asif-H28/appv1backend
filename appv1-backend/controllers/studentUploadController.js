@@ -34,12 +34,24 @@ exports.createUpload = async (req, res) => {
 exports.getUploads = async (req, res) => {
   try {
     const orgId = req.user.orgId;
-    const { uploadType, teacherId, uploadedById, page = 1, limit = 10 } = req.query;
+    const { uploadType, teacherId, uploadedById, title, page = 1, limit = 10 } = req.query;
 
     const query = { orgId };
     if (uploadType) query.uploadType = uploadType;
     if (teacherId) query.teacherId = teacherId;
     if (uploadedById) query.uploadedById = uploadedById;
+    
+    // Support filtering by title (single or comma-separated)
+    if (title) {
+      const titlesArray = title.split(',').map(t => t.trim());
+      if (titlesArray.length > 1) {
+        // Case-insensitive exact match for multiple titles
+        query.title = { $in: titlesArray.map(t => new RegExp(`^${t}$`, 'i')) };
+      } else {
+        // Partial case-insensitive match for single title
+        query.title = { $regex: title, $options: 'i' };
+      }
+    }
 
     const skip = (page - 1) * limit;
 
