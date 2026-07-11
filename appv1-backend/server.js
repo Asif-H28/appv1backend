@@ -128,6 +128,8 @@ app.use('/api/tutor-attendance', require('./routes/tutorAttendance'));
 
 // Student routes
 app.use('/api/student', require('./routes/student'));
+app.use('/api/student-uploads', require('./routes/studentUploadRoutes'));
+app.use('/api/teacher-reviews', require('./routes/teacherReviewRoutes'));
 
 // Chat routes
 app.use('/api/chat', require('./routes/chat'));
