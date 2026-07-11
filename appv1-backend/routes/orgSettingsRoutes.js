@@ -8,4 +8,8 @@ const orgSettingsController = require('../controllers/orgSettingsController');
 router.get('/payment', auth, orgSettingsController.getPaymentSettings);
 router.put('/payment', auth, orgSettingsController.updatePaymentSettings);
 
+// Routes for general org settings (like checkin restrictions)
+router.get('/', auth, orgSettingsController.getOrgSettings);
+router.put('/', auth, orgSettingsController.updateOrgSettings);
+
 module.exports = router;

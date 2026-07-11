@@ -1,5 +1,6 @@
 const TutorSessionActivity = require('../models/TutorSessionActivity');
 const TutorAttendance = require('../models/TutorAttendance');
+const OrgSettings = require('../models/OrgSettings');
 const NodeGeocoder = require('node-geocoder');
 
 const geocoder = NodeGeocoder({ provider: 'openstreetmap' });
@@ -10,6 +11,23 @@ exports.startSession = async (req, res) => {
     const orgId = req.user.orgId; // from auth middleware
     const teacherId = req.user.teacherId; // from auth middleware
     const { studentPhotos, duration, studentIds, lat, lng, date, sessionStartedTime } = req.body;
+
+    // Check organization settings for check-in restriction time
+    const settings = await OrgSettings.findOne({ orgId });
+    if (settings && settings.tutorCheckInRestrictionTime) {
+      const targetTimeString = settings.tutorCheckInRestrictionTime; // e.g., "18:30"
+      const [targetHour, targetMinute] = targetTimeString.split(':').map(Number);
+      
+      const sessionTime = new Date(sessionStartedTime || new Date());
+      // Convert session time to IST (Asia/Kolkata) to compare
+      const istTime = new Date(sessionTime.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+      const currentHour = istTime.getHours();
+      const currentMinute = istTime.getMinutes();
+      
+      if (currentHour > targetHour || (currentHour === targetHour && currentMinute > targetMinute)) {
+        return res.status(403).json({ success: false, message: `Check-in is restricted after ${targetTimeString}` });
+      }
+    }
 
     let address = 'Location not found';
     if (lat && lng) {

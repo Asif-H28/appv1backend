@@ -98,3 +98,58 @@ exports.updatePaymentSettings = async (req, res) => {
         res.status(500).json({ success: false, error: 'Internal server error' });
     }
 };
+
+/**
+ * Get General Org Settings
+ * Method: GET
+ * Route: /api/org/settings
+ */
+exports.getOrgSettings = async (req, res) => {
+    try {
+        const orgId = req.user.orgId;
+        const OrgSettings = require('../models/OrgSettings');
+        
+        let settings = await OrgSettings.findOne({ orgId });
+        if (!settings) {
+            settings = await OrgSettings.create({ orgId });
+        }
+
+        res.status(200).json({ success: true, data: settings });
+    } catch (error) {
+        console.error('Error fetching org settings:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+};
+
+/**
+ * Update General Org Settings
+ * Method: PUT
+ * Route: /api/org/settings
+ */
+exports.updateOrgSettings = async (req, res) => {
+    try {
+        const orgId = req.user.orgId;
+        const { tutorCheckInRestrictionTime } = req.body;
+        const OrgSettings = require('../models/OrgSettings');
+
+        const updateData = {};
+        
+        if (tutorCheckInRestrictionTime !== undefined) {
+            if (tutorCheckInRestrictionTime && !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(tutorCheckInRestrictionTime)) {
+                return res.status(400).json({ success: false, message: 'Invalid time format. Use HH:mm in 24-hour format.' });
+            }
+            updateData.tutorCheckInRestrictionTime = tutorCheckInRestrictionTime;
+        }
+
+        const settings = await OrgSettings.findOneAndUpdate(
+            { orgId },
+            { $set: updateData },
+            { new: true, upsert: true }
+        );
+
+        res.status(200).json({ success: true, message: 'Organization settings updated successfully', data: settings });
+    } catch (error) {
+        console.error('Error updating org settings:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+};
