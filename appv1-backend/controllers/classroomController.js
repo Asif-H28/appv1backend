@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Classroom = require('../models/Classroom');
 const Teacher = require('../models/Teacher');
+const Student = require('../models/Student');
 
 const generateClassId = () => `CLS_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
@@ -72,12 +73,53 @@ exports.getClassroomsByTeacher = async (req, res) => {
   }
 };
 
-// GET ALL CLASSROOMS BY ORG
+// GET ALL CLASSROOMS BY ORG (PAGINATED WITH SEARCH AND STUDENT DETAILS)
 exports.getClassroomsByOrg = async (req, res) => {
   try {
     const { orgId } = req.params;
-    const classrooms = await Classroom.find({ orgId, isActive: true });
-    res.json({ success: true, count: classrooms.length, classrooms });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || '';
+    const skip = (page - 1) * limit;
+
+    const query = { orgId, isActive: true };
+    if (search) {
+      query.className = { $regex: search, $options: 'i' };
+    }
+
+    const totalClassrooms = await Classroom.countDocuments(query);
+    const classrooms = await Classroom.find(query).skip(skip).limit(limit).lean();
+
+    // Fetch basic details for all students present in the returned classrooms
+    const allStudentIds = [...new Set(classrooms.flatMap(c => c.studentIds || []))];
+    const students = await Student.find({ studentId: { $in: allStudentIds } }, 'studentId name email phone');
+    const studentMap = students.reduce((acc, student) => {
+        acc[student.studentId] = student;
+        return acc;
+    }, {});
+
+    // Map student details back into the respective classrooms
+    const formattedClassrooms = classrooms.map(classroom => {
+        const studentDetails = (classroom.studentIds || []).map(sid => {
+            const stu = studentMap[sid];
+            return stu 
+              ? { studentId: stu.studentId, name: stu.name, email: stu.email, phone: stu.phone } 
+              : { studentId: sid, name: 'Unknown', email: '', phone: '' };
+        });
+        return {
+            ...classroom,
+            students: studentDetails
+        };
+    });
+
+    res.json({ 
+      success: true, 
+      count: formattedClassrooms.length,
+      total: totalClassrooms,
+      page,
+      totalPages: Math.ceil(totalClassrooms / limit),
+      classrooms: formattedClassrooms 
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
