@@ -34,7 +34,7 @@ exports.createUpload = async (req, res) => {
 exports.getUploads = async (req, res) => {
   try {
     const orgId = req.user.orgId;
-    const { uploadType, teacherId, uploadedById, title, page = 1, limit = 10 } = req.query;
+    const { uploadType, teacherId, uploadedById, title, month, year, page = 1, limit = 10 } = req.query;
 
     const query = { orgId };
     if (uploadType) query.uploadType = uploadType;
@@ -51,6 +51,18 @@ exports.getUploads = async (req, res) => {
         // Partial case-insensitive match for single title
         query.title = { $regex: title, $options: 'i' };
       }
+    }
+
+    // Filter by month and year
+    if (month && year) {
+      // month is 1-indexed (1 = January)
+      const startDate = new Date(year, parseInt(month) - 1, 1);
+      const endDate = new Date(year, parseInt(month), 1); // 1st day of next month
+      query.createdAt = { $gte: startDate, $lt: endDate };
+    } else if (year) {
+      const startDate = new Date(year, 0, 1);
+      const endDate = new Date(parseInt(year) + 1, 0, 1);
+      query.createdAt = { $gte: startDate, $lt: endDate };
     }
 
     const skip = (page - 1) * limit;
