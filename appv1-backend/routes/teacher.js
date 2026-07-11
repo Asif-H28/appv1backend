@@ -13,7 +13,8 @@ const {
   getTeacherList,
   removeTeacherFromOrg,
   updateTeachersSalary,
-  getBasicTeacherList
+  getBasicTeacherList,
+  getTeachersSalary
 } = require('../controllers/teacherController');
 
 const auth = require('../middleware/auth');
@@ -30,6 +31,7 @@ router.use(checkOrgStatus);
 
 // Profile
 router.put('/salary/bulk', updateTeachersSalary);
+router.get('/salary/list/:orgId', getTeachersSalary);
 router.get('/basic-list/:orgId', getBasicTeacherList);
 router.get('/list/:orgId', getTeacherList);
 router.get('/org/:orgId', getOrgTeachers);

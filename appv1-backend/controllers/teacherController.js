@@ -503,3 +503,24 @@ exports.getBasicTeacherList = async (req, res) => {
   }
 };
 
+// GET TEACHERS SALARY CONFIG (orgId)
+exports.getTeachersSalary = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    const teachers = await Teacher.find({ orgId, verified: true }).select('name teacherId salaryType salaryAmount');
+
+    res.json({
+      success: true,
+      count: teachers.length,
+      teachers: teachers.map(t => ({
+        teacherId: t.teacherId,
+        name: t.name,
+        salaryType: t.salaryType || 'monthwise',
+        salaryAmount: t.salaryAmount || 0
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
