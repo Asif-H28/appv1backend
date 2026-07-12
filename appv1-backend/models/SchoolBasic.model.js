@@ -6,6 +6,7 @@ const SchoolBasicSchema = new mongoose.Schema({
   campusAddress:  { type: String, default: '' },
   schoolEmail:    { type: String, default: '' },
   primaryContact: { type: String, default: '' },
+  logoUrl:        { type: String, default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('SchoolBasic', SchoolBasicSchema);

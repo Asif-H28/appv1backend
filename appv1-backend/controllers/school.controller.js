@@ -1,6 +1,7 @@
 const SchoolBasic  = require('../models/SchoolBasic.model');
 const FeeStructure = require('../models/FeeStructure.model');
 const Role         = require('../models/Role.model');
+const { uploadToAzure, sharp } = require('../config/azureStorage');
 
 // ══════════════════════════════════════════════════════════
 //  MODULE 1 — SCHOOL BASIC DETAILS
@@ -25,12 +26,56 @@ exports.upsertBasicDetails = async (req, res) => {
     const { orgId, schoolName, campusAddress, schoolEmail, primaryContact } = req.body;
     if (!orgId) return res.status(400).json({ success: false, message: 'orgId is required.' });
 
+    let logoUrl;
+    if (req.file) {
+      const isImage = req.file.mimetype.startsWith('image/');
+      if (!isImage) {
+        return res.status(400).json({ success: false, message: 'Uploaded file must be an image.' });
+      }
+
+      // Optimize image using Sharp
+      const optimizedBuffer = await sharp(req.file.buffer)
+        .resize({ width: 500, withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+
+      const uploadResult = await uploadToAzure(
+        optimizedBuffer,
+        req.file.originalname.replace(/\.[^/.]+$/, "") + ".webp",
+        'image/webp',
+        'logos'
+      );
+      logoUrl = uploadResult.url;
+    }
+
+    const updateData = { orgId, schoolName, campusAddress, schoolEmail, primaryContact };
+    if (logoUrl) {
+      updateData.logoUrl = logoUrl;
+    }
+
     const doc = await SchoolBasic.findOneAndUpdate(
       { orgId },
-      { orgId, schoolName, campusAddress, schoolEmail, primaryContact },
+      updateData,
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
     return res.json({ success: true, message: 'Basic details saved.', data: doc });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+};
+
+// GET /api/org/school/logo/:orgId
+exports.getLogo = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    if (!orgId) return res.status(400).json({ success: false, message: 'orgId is required.' });
+
+    const doc = await SchoolBasic.findOne({ orgId });
+    if (!doc || !doc.logoUrl) {
+      return res.status(404).json({ success: false, message: 'Logo not found for this organization.' });
+    }
+    
+    return res.json({ success: true, logoUrl: doc.logoUrl });
   } catch (e) {
     return res.status(500).json({ success: false, message: e.message });
   }
@@ -190,14 +235,17 @@ exports.getPublicProfile = async (req, res) => {
     // Fetch Organization details as fallback for name/address if SchoolBasic doesn't exist
     let schoolName = '';
     let address = '';
+    let logoUrl = '';
     if (schoolBasic) {
       schoolName = schoolBasic.schoolName;
       address = schoolBasic.campusAddress;
+      logoUrl = schoolBasic.logoUrl || '';
     } else {
       const org = await require('../models/Organization').findOne({ orgId });
       if (org) {
         schoolName = org.schoolName || org.name || '';
         address = org.campusAddress || org.address || '';
+        logoUrl = org.logoUrl || '';
       }
     }
 
@@ -212,6 +260,7 @@ exports.getPublicProfile = async (req, res) => {
       data: {
         schoolName,
         address,
+        logoUrl,
         roles,
         feeStructures
       }
