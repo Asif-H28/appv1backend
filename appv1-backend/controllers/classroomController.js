@@ -37,6 +37,7 @@ exports.createClassroom = async (req, res) => {
       classroom: {
         classId: classroom.classId,
         teacherId: classroom.teacherId,
+        teacherName: teacher.name,
         orgId: classroom.orgId,
         className: classroom.className,
         studentIds: classroom.studentIds,
@@ -53,10 +54,19 @@ exports.createClassroom = async (req, res) => {
 exports.getClassroom = async (req, res) => {
   try {
     const { classId } = req.params;
-    const classroom = await Classroom.findOne({ classId, isActive: true });
+    const classroom = await Classroom.findOne({ classId, isActive: true }).lean();
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
-    res.json({ success: true, classroom });
+    const teacher = await Teacher.findOne({ teacherId: classroom.teacherId }, 'name');
+    const teacherName = teacher ? teacher.name : 'Unknown';
+
+    res.json({
+      success: true,
+      classroom: {
+        ...classroom,
+        teacherName
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -66,8 +76,17 @@ exports.getClassroom = async (req, res) => {
 exports.getClassroomsByTeacher = async (req, res) => {
   try {
     const { teacherId } = req.params;
-    const classrooms = await Classroom.find({ teacherId, isActive: true });
-    res.json({ success: true, count: classrooms.length, classrooms });
+    const classrooms = await Classroom.find({ teacherId, isActive: true }).sort({ createdAt: -1 }).lean();
+
+    const teacher = await Teacher.findOne({ teacherId }, 'name');
+    const teacherName = teacher ? teacher.name : 'Unknown';
+
+    const formattedClassrooms = classrooms.map(classroom => ({
+      ...classroom,
+      teacherName
+    }));
+
+    res.json({ success: true, count: formattedClassrooms.length, classrooms: formattedClassrooms });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -88,7 +107,7 @@ exports.getClassroomsByOrg = async (req, res) => {
     }
 
     const totalClassrooms = await Classroom.countDocuments(query);
-    const classrooms = await Classroom.find(query).skip(skip).limit(limit).lean();
+    const classrooms = await Classroom.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
 
     // Fetch basic details for all students present in the returned classrooms
     const allStudentIds = [...new Set(classrooms.flatMap(c => c.studentIds || []))];
@@ -98,7 +117,15 @@ exports.getClassroomsByOrg = async (req, res) => {
         return acc;
     }, {});
 
-    // Map student details back into the respective classrooms
+    // Fetch basic details for all teachers present in the returned classrooms
+    const allTeacherIds = [...new Set(classrooms.map(c => c.teacherId).filter(Boolean))];
+    const teachers = await Teacher.find({ teacherId: { $in: allTeacherIds } }, 'teacherId name');
+    const teacherMap = teachers.reduce((acc, teacher) => {
+        acc[teacher.teacherId] = teacher.name;
+        return acc;
+    }, {});
+
+    // Map student and teacher details back into the respective classrooms
     const formattedClassrooms = classrooms.map(classroom => {
         const studentDetails = (classroom.studentIds || []).map(sid => {
             const stu = studentMap[sid];
@@ -106,8 +133,10 @@ exports.getClassroomsByOrg = async (req, res) => {
               ? { studentId: stu.studentId, name: stu.name, email: stu.email, phone: stu.phone } 
               : { studentId: sid, name: 'Unknown', email: '', phone: '' };
         });
+        const teacherName = teacherMap[classroom.teacherId] || 'Unknown';
         return {
             ...classroom,
+            teacherName,
             students: studentDetails
         };
     });
@@ -129,7 +158,7 @@ exports.getClassroomsByOrg = async (req, res) => {
 exports.getClassroomList = async (req, res) => {
   try {
     const { orgId } = req.params;
-    const classrooms = await Classroom.find({ orgId, isActive: true }).select('classId className -_id');
+    const classrooms = await Classroom.find({ orgId, isActive: true }).select('classId className -_id').sort({ createdAt: -1 });
     res.json({ success: true, count: classrooms.length, classrooms });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -150,11 +179,20 @@ exports.updateClassroom = async (req, res) => {
       { classId },
       { $set: filteredData },
       { new: true }
-    );
+    ).lean();
 
     if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
-    res.json({ success: true, classroom });
+    const teacher = await Teacher.findOne({ teacherId: classroom.teacherId }, 'name');
+    const teacherName = teacher ? teacher.name : 'Unknown';
+
+    res.json({ 
+      success: true, 
+      classroom: {
+        ...classroom,
+        teacherName
+      } 
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
