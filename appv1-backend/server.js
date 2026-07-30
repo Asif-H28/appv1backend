@@ -181,6 +181,9 @@ app.use('/api/quiz', require('./routes/quiz'));
 // Transport Routes
 app.use('/api/transport', require('./routes/transport'));
 
+// NammaSambrama Routes (separate 'nammasambrama' database)
+app.use('/api/nammasambrama', require('./routes/nammasambrama'));
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
