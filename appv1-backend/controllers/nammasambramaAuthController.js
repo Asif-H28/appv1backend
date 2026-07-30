@@ -105,7 +105,10 @@ exports.sendOtp = async (req, res) => {
       expiresInSeconds: OTP_TTL_MS / 1000,
       // True when no email provider is configured yet — the OTP is in the
       // server console. Never exposes the OTP itself.
-      devMode: Boolean(delivery.devMode)
+      devMode: Boolean(delivery.devMode),
+      // Why delivery fell back, so a misconfigured deployment is diagnosable
+      // without container log access.
+      deliveryError: delivery.devMode ? delivery.reason : undefined
     });
   } catch (error) {
     console.error('sendOtp error:', error);
@@ -152,7 +155,8 @@ exports.resendOtp = async (req, res) => {
       message: 'OTP resent successfully',
       email,
       expiresInSeconds: OTP_TTL_MS / 1000,
-      devMode: Boolean(delivery.devMode)
+      devMode: Boolean(delivery.devMode),
+      deliveryError: delivery.devMode ? delivery.reason : undefined
     });
   } catch (error) {
     console.error('resendOtp error:', error);

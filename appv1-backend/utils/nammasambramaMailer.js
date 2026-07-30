@@ -34,8 +34,14 @@ function otpHtml(otp) {
   `;
 }
 
+// Same verified-sender fallback used by utils/mailer.js, so this works with
+// whatever is already configured for the school app's Brevo account.
 function senderEmail() {
-  return process.env.NAMMASAMBRAMA_SENDER_EMAIL || process.env.GMAIL_USER;
+  return (
+    process.env.NAMMASAMBRAMA_SENDER_EMAIL ||
+    process.env.GMAIL_USER ||
+    'asif28072001@gmail.com'
+  );
 }
 
 /** Brevo transactional email API. */
@@ -44,9 +50,6 @@ async function sendViaBrevo(email, otp) {
   const from = senderEmail();
 
   if (!apiKey) return { sent: false, reason: 'BREVO_API_KEY not configured' };
-  if (!from) {
-    return { sent: false, reason: 'NAMMASAMBRAMA_SENDER_EMAIL / GMAIL_USER not configured' };
-  }
 
   const response = await fetch(BREVO_URL, {
     method: 'POST',
