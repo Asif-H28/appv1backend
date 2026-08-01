@@ -39,6 +39,15 @@ const {
   getPublicPayment
 } = require('../controllers/nammasambramaPaymentController');
 
+const {
+  getPublicGallery,
+  getAdminGallery,
+  updateGallerySettings,
+  createGalleryItem,
+  updateGalleryItem,
+  deleteGalleryItem
+} = require('../controllers/nammasambramaGalleryController');
+
 const nammasambramaAuth = require('../middleware/nammasambramaAuth');
 const { upload } = require('../config/azureStorage');
 
@@ -55,6 +64,7 @@ router.get ('/public/events/:id',  getEvent);
 router.get ('/public/foods',       listFoods);
 router.post('/public/enquiries',   createEnquiry);
 router.get ('/public/payment',     getPublicPayment);
+router.get ('/public/gallery',     getPublicGallery);
 
 /* ---------------- Admin panel (JWT required) ---------------- */
 router.use('/admin', nammasambramaAuth);
@@ -83,5 +93,11 @@ router.delete('/admin/upload',  deleteImage);
 router.get   ('/admin/payment',      getPaymentSettings);
 router.put   ('/admin/payment',      upload.single('file'), upsertPaymentSettings);
 router.delete('/admin/payment/qr',   deletePaymentQr);
+
+router.get   ('/admin/gallery',               getAdminGallery);
+router.put   ('/admin/gallery/settings',      updateGallerySettings);
+router.post  ('/admin/gallery/items',         upload.single('file'), createGalleryItem);
+router.put   ('/admin/gallery/items/:id',     upload.single('file'), updateGalleryItem);
+router.delete('/admin/gallery/items/:id',     deleteGalleryItem);
 
 module.exports = router;
