@@ -286,3 +286,157 @@ exports.me = async (req, res) => {
     res.status(500).json({ error: 'Failed to load profile' });
   }
 };
+
+/**
+ * GET /api/nammasambrama/admin/users  (protected)
+ * List all admin accounts.
+ */
+exports.listAdmins = async (req, res) => {
+  try {
+    const admins = await NammaSambramaAdmin.find({}).sort({ createdAt: -1 });
+    res.status(200).json({
+      admins: admins.map((a) => ({
+        id: a._id,
+        username: a.username,
+        email: a.email,
+        isVerified: a.isVerified,
+        createdAt: a.createdAt
+      }))
+    });
+  } catch (error) {
+    console.error('listAdmins error:', error);
+    res.status(500).json({ error: 'Failed to list admins' });
+  }
+};
+
+/**
+ * POST /api/nammasambrama/admin/users  (protected)
+ * Direct creation of an allowed admin user (Email & Password).
+ */
+exports.createAdminUser = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+
+    if (!username || !String(username).trim()) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    if (!password || String(password).length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    if (!EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ error: 'Enter a valid email address' });
+    }
+
+    const cleanUsername = String(username).trim().toLowerCase();
+
+    const existing = await NammaSambramaAdmin.findOne({
+      $or: [{ username: cleanUsername }, { email }]
+    });
+    if (existing) {
+      return res.status(409).json({
+        error: existing.username === cleanUsername
+          ? 'Username already taken'
+          : 'An account already exists for this email address'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, await bcrypt.genSalt(12));
+    const admin = await NammaSambramaAdmin.create({
+      username: cleanUsername,
+      password: hashedPassword,
+      email,
+      isVerified: true
+    });
+
+    res.status(201).json({
+      message: 'Admin account created successfully',
+      admin: publicAdmin(admin)
+    });
+  } catch (error) {
+    console.error('createAdminUser error:', error);
+    res.status(500).json({ error: 'Failed to create admin user' });
+  }
+};
+
+/**
+ * PUT /api/nammasambrama/admin/users/:id  (protected)
+ * Update username, email, or password of an admin account.
+ */
+exports.updateAdminUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { username, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+
+    const admin = await NammaSambramaAdmin.findById(id);
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin account not found' });
+    }
+
+    if (username && String(username).trim()) {
+      const cleanUsername = String(username).trim().toLowerCase();
+      const existingUser = await NammaSambramaAdmin.findOne({
+        _id: { $ne: id },
+        username: cleanUsername
+      });
+      if (existingUser) {
+        return res.status(409).json({ error: 'Username already taken' });
+      }
+      admin.username = cleanUsername;
+    }
+
+    if (email && EMAIL_REGEX.test(email)) {
+      const existingEmail = await NammaSambramaAdmin.findOne({
+        _id: { $ne: id },
+        email
+      });
+      if (existingEmail) {
+        return res.status(409).json({ error: 'Email address already in use' });
+      }
+      admin.email = email;
+    }
+
+    if (password) {
+      if (String(password).length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      }
+      admin.password = await bcrypt.hash(password, await bcrypt.genSalt(12));
+    }
+
+    await admin.save();
+
+    res.status(200).json({
+      message: 'Admin user updated successfully',
+      admin: publicAdmin(admin)
+    });
+  } catch (error) {
+    console.error('updateAdminUser error:', error);
+    res.status(500).json({ error: 'Failed to update admin user' });
+  }
+};
+
+/**
+ * DELETE /api/nammasambrama/admin/users/:id  (protected)
+ * Delete an admin user.
+ */
+exports.deleteAdminUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const admin = await NammaSambramaAdmin.findById(id);
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin account not found' });
+    }
+
+    if (admin.email === 'asif28072001@gmail.com') {
+      return res.status(403).json({ error: 'Cannot delete primary super admin account' });
+    }
+
+    await NammaSambramaAdmin.deleteOne({ _id: id });
+    res.status(200).json({ message: 'Admin account deleted successfully', id });
+  } catch (error) {
+    console.error('deleteAdminUser error:', error);
+    res.status(500).json({ error: 'Failed to delete admin user' });
+  }
+};

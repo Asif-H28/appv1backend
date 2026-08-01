@@ -6,7 +6,11 @@ const {
   resendOtp,
   verifyOtp,
   login,
-  me
+  me,
+  listAdmins,
+  createAdminUser,
+  updateAdminUser,
+  deleteAdminUser
 } = require('../controllers/nammasambramaAuthController');
 
 const {
@@ -99,5 +103,10 @@ router.put   ('/admin/gallery/settings',      updateGallerySettings);
 router.post  ('/admin/gallery/items',         upload.single('file'), createGalleryItem);
 router.put   ('/admin/gallery/items/:id',     upload.single('file'), updateGalleryItem);
 router.delete('/admin/gallery/items/:id',     deleteGalleryItem);
+
+router.get   ('/admin/users',         listAdmins);
+router.post  ('/admin/users',         createAdminUser);
+router.put   ('/admin/users/:id',     updateAdminUser);
+router.delete('/admin/users/:id',     deleteAdminUser);
 
 module.exports = router;
