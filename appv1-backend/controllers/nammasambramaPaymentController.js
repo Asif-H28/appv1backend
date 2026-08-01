@@ -3,14 +3,65 @@ const { uploadToAzure, deleteFromAzure, sharp } = require('../config/azureStorag
 
 const AZURE_FOLDER = 'nammasambrama/payment';
 
+// Payment settings are org-wide: one shared record that every admin edits.
+const SINGLETON = { singletonKey: 'default' };
+
 /**
  * Shape a document for the frontend.
  */
 function serialize(doc) {
   if (!doc) return null;
   const obj = doc.toObject ? doc.toObject() : doc;
-  const { _id, __v, adminId, ...rest } = obj;
+  const { _id, __v, singletonKey, updatedByAdminId, ...rest } = obj;
   return { id: String(_id), ...rest };
+}
+
+/**
+ * Load the one shared payment record.
+ *
+ * Falls back to the most recently updated legacy document (records written
+ * before these settings became org-wide carry an `adminId` and no
+ * `singletonKey`) and adopts it as the singleton, so an existing UPI ID and
+ * QR image survive the switch instead of silently resetting to blank.
+ */
+async function findSettings() {
+  const doc = await NammaSambramaPayment.findOne(SINGLETON);
+  if (doc) return doc;
+
+  // Prefer a legacy record that actually carries settings, so adoption never
+  // promotes a blank row over one holding a real UPI ID or QR image.
+  const legacy =
+    (await NammaSambramaPayment
+      .findOne({
+        singletonKey: { $exists: false },
+        $or: [
+          { upiId: { $nin: ['', null] } },
+          { qrImageUrl: { $nin: ['', null] } }
+        ]
+      })
+      .sort({ updatedAt: -1 })) ||
+    (await NammaSambramaPayment
+      .findOne({ singletonKey: { $exists: false } })
+      .sort({ updatedAt: -1 }));
+
+  if (!legacy) return null;
+
+  try {
+    // Claim it atomically; a concurrent request may be adopting a different
+    // legacy row at the same moment and the unique index lets only one win.
+    const adopted = await NammaSambramaPayment.findOneAndUpdate(
+      { _id: legacy._id, singletonKey: { $exists: false } },
+      { $set: SINGLETON },
+      { new: true }
+    );
+    return adopted || (await NammaSambramaPayment.findOne(SINGLETON)) || legacy;
+  } catch (err) {
+    // Duplicate key (11000): someone else won the race — use their record.
+    if (err.code === 11000) {
+      return (await NammaSambramaPayment.findOne(SINGLETON)) || legacy;
+    }
+    throw err;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -19,11 +70,11 @@ function serialize(doc) {
 
 /**
  * GET /admin/payment
- * Return the current admin's saved payment settings.
+ * Return the shared, org-wide payment settings.
  */
 exports.getPaymentSettings = async (req, res) => {
   try {
-    const doc = await NammaSambramaPayment.findOne({ adminId: req.admin.adminId });
+    const doc = await findSettings();
     res.status(200).json({ payment: doc ? serialize(doc) : null });
   } catch (error) {
     console.error('getPaymentSettings error:', error);
@@ -33,9 +84,10 @@ exports.getPaymentSettings = async (req, res) => {
 
 /**
  * PUT /admin/payment
- * Create-or-update UPI ID, payee name, and optionally upload a QR image.
- * Accepts multipart/form-data with text fields `upiId`, `payeeName` and
- * an optional `file` field for the QR image.
+ * Create-or-update the shared UPI ID, payee name, and optionally upload a
+ * QR image. Any admin may edit these settings and they all edit the same
+ * record. Accepts multipart/form-data with text fields `upiId`, `payeeName`
+ * and an optional `file` field for the QR image.
  */
 exports.upsertPaymentSettings = async (req, res) => {
   try {
@@ -47,13 +99,14 @@ exports.upsertPaymentSettings = async (req, res) => {
 
     const update = {
       upiId: String(upiId).trim(),
-      payeeName: String(payeeName || '').trim()
+      payeeName: String(payeeName || '').trim(),
+      updatedByAdminId: req.admin.adminId
     };
 
     // Handle QR image upload
     if (req.file) {
-      // Delete old QR image if one exists
-      const existing = await NammaSambramaPayment.findOne({ adminId: req.admin.adminId });
+      // Delete the shared record's old QR image if one exists
+      const existing = await findSettings();
       if (existing && existing.qrImageId) {
         try {
           await deleteFromAzure(existing.qrImageId);
@@ -79,11 +132,27 @@ exports.upsertPaymentSettings = async (req, res) => {
       update.qrImageId = publicId;
     }
 
-    const doc = await NammaSambramaPayment.findOneAndUpdate(
-      { adminId: req.admin.adminId },
-      { $set: update, $setOnInsert: { adminId: req.admin.adminId } },
-      { new: true, upsert: true, runValidators: true }
-    );
+    // Adopt any legacy per-admin record first so the upsert updates it
+    // rather than creating a second, blank singleton alongside it.
+    await findSettings();
+
+    let doc;
+    try {
+      doc = await NammaSambramaPayment.findOneAndUpdate(
+        SINGLETON,
+        { $set: update, $setOnInsert: SINGLETON },
+        { new: true, upsert: true, runValidators: true }
+      );
+    } catch (err) {
+      // Duplicate key (11000): a concurrent request inserted the singleton
+      // between our lookup and this upsert. It exists now, so update it.
+      if (err.code !== 11000) throw err;
+      doc = await NammaSambramaPayment.findOneAndUpdate(
+        SINGLETON,
+        { $set: update },
+        { new: true, runValidators: true }
+      );
+    }
 
     res.status(200).json({ payment: serialize(doc) });
   } catch (error) {
@@ -94,11 +163,11 @@ exports.upsertPaymentSettings = async (req, res) => {
 
 /**
  * DELETE /admin/payment/qr
- * Remove the QR image from Azure and clear the image fields.
+ * Remove the shared QR image from Azure and clear the image fields.
  */
 exports.deletePaymentQr = async (req, res) => {
   try {
-    const doc = await NammaSambramaPayment.findOne({ adminId: req.admin.adminId });
+    const doc = await findSettings();
     if (!doc) {
       return res.status(404).json({ error: 'No payment settings found' });
     }
@@ -113,6 +182,7 @@ exports.deletePaymentQr = async (req, res) => {
 
     doc.qrImageUrl = '';
     doc.qrImageId = '';
+    doc.updatedByAdminId = req.admin.adminId;
     await doc.save();
 
     res.status(200).json({ payment: serialize(doc) });
@@ -129,11 +199,12 @@ exports.deletePaymentQr = async (req, res) => {
 /**
  * GET /public/payment
  * Return UPI ID, QR image URL, and payee name for the public site.
- * Returns the first (most recently updated) payment record.
+ * Reads the same shared record the admin console edits, so what an admin
+ * saves is exactly what the public site shows.
  */
 exports.getPublicPayment = async (req, res) => {
   try {
-    const doc = await NammaSambramaPayment.findOne().sort({ updatedAt: -1 });
+    const doc = await findSettings();
 
     if (!doc || (!doc.upiId && !doc.qrImageUrl)) {
       return res.status(200).json({ payment: null });
