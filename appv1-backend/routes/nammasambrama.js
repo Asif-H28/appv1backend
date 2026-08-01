@@ -32,6 +32,13 @@ const {
   deleteEnquiry
 } = require('../controllers/nammasambramaEnquiryController');
 
+const {
+  getPaymentSettings,
+  upsertPaymentSettings,
+  deletePaymentQr,
+  getPublicPayment
+} = require('../controllers/nammasambramaPaymentController');
+
 const nammasambramaAuth = require('../middleware/nammasambramaAuth');
 const { upload } = require('../config/azureStorage');
 
@@ -47,6 +54,7 @@ router.get ('/public/events',      listEvents);
 router.get ('/public/events/:id',  getEvent);
 router.get ('/public/foods',       listFoods);
 router.post('/public/enquiries',   createEnquiry);
+router.get ('/public/payment',     getPublicPayment);
 
 /* ---------------- Admin panel (JWT required) ---------------- */
 router.use('/admin', nammasambramaAuth);
@@ -71,5 +79,9 @@ router.get   ('/admin/dashboard/stats',  dashboardStats);
 
 router.post  ('/admin/upload',  upload.single('file'), uploadImage);
 router.delete('/admin/upload',  deleteImage);
+
+router.get   ('/admin/payment',      getPaymentSettings);
+router.put   ('/admin/payment',      upload.single('file'), upsertPaymentSettings);
+router.delete('/admin/payment/qr',   deletePaymentQr);
 
 module.exports = router;
